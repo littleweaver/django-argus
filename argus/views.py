@@ -18,9 +18,7 @@ class MemberView(DetailView):
         context = super(MemberView, self).get_context_data(**kwargs)
         total_expense = self.object.expenses.aggregate(models.Sum('cost'))['cost__sum'] or 0
         total_share = self.object.shares.aggregate(models.Sum('amount'))['amount__sum'] or 0
-        total_paid_to = self.object.payments_to.aggregate(models.Sum('amount'))['amount__sum'] or 0
-        total_paid_from = self.object.payments_from.aggregate(models.Sum('amount'))['amount__sum'] or 0
-
-        owed = total_share + total_paid_to - total_expense - total_paid_from
+        
+        owed = total_share - total_expense
         context['owed'] = owed
         return context

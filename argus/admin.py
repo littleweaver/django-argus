@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 from argus.models import (Group, Member, Recipient, Category, Expense,
-                          Share, Payment)
+                          Share)
 
 
 class MemberInline(admin.TabularInline):
@@ -28,6 +28,3 @@ class ShareInline(admin.TabularInline):
 @admin.register(Expense)
 class ExpenseAdmin(admin.ModelAdmin):
     inlines = [ShareInline]
-
-
-admin.site.register(Payment)
