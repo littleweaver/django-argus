@@ -1,0 +1,10 @@
+
+{% if groups %}
+  <ul>
+    {% for group in groups %}
+      <li><a href="{{ group.get_absolute_url }}">{{ group.name }}</a></li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p>No groups have been created yet.</p>
+{% endif %}

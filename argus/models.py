@@ -4,6 +4,7 @@ from decimal import Decimal
 import random
 
 from django.contrib.auth.hashers import make_password
+from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils.encoding import smart_text
 from django.utils.timezone import now
@@ -13,7 +14,7 @@ from django.utils.translation import ugettext_lazy as _
 class Group(models.Model):
     email = models.EmailField()
     name = models.CharField(max_length=64)
-    custom_slug = models.CharField(max_length=30)
+    custom_slug = models.CharField(max_length=30, blank=True)
     auto_slug = models.CharField(max_length=30)
     password = models.CharField(max_length=128, blank=True)
     use_categories = models.BooleanField(default=False)
@@ -21,6 +22,10 @@ class Group(models.Model):
 
     def __unicode__(self):
         return smart_text(self.name)
+
+    def get_absolute_url(self):
+        return reverse("argus_group_detail",
+                       kwargs={"group_slug": self.custom_slug or self.auto_slug})
 
     def set_password(self, raw_password):
         self.password = make_password(raw_password)
@@ -39,15 +44,30 @@ class Group(models.Model):
 
 class Member(models.Model):
     name = models.CharField(max_length=128)
-    group = models.ForeignKey(Group)
+    group = models.ForeignKey(Group, related_name='members')
 
     def __unicode__(self):
         return smart_text(self.name)
 
+    def get_absolute_url(self):
+        return reverse("argus_member_detail",
+                       kwargs={
+                           "group_slug": self.group.custom_slug or self.group.auto_slug,
+                           "pk": self.pk,
+                       })
+
+    @property
+    def balance(self):
+        if not hasattr(self, '_balance'):
+            total_expense = self.expenses.aggregate(models.Sum('cost'))['cost__sum'] or 0
+            total_share = self.shares.aggregate(models.Sum('amount'))['amount__sum'] or 0
+            self._balance = total_share - total_expense
+        return self._balance
+
 
 class Recipient(models.Model):
     name = models.CharField(max_length=64)
-    group = models.ForeignKey(Group)
+    group = models.ForeignKey(Group, related_name='recipients')
 
     def __unicode__(self):
         return smart_text(self.name)
@@ -55,7 +75,7 @@ class Recipient(models.Model):
 
 class Category(models.Model):
     name = models.CharField(max_length=64)
-    group = models.ForeignKey(Group)
+    group = models.ForeignKey(Group, related_name='categories')
 
     class Meta:
         verbose_name_plural = 'categories'
@@ -176,3 +196,7 @@ class Share(models.Model):
     amount_is_manual = models.BooleanField(default=False)
 
     objects = ShareManager()
+
+    @property
+    def percentage(self):
+        return (self.portion * 100).quantize(Decimal('.01'))

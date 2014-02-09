@@ -1,0 +1,42 @@
+<h1>{{ group.name }}</h1>
+
+<h2>Members</h2>
+{% with members=group.members.all %}
+  {% if members %}
+    <ul>
+      {% for member in members %}
+        <li><a href="{{ member.get_absolute_url }}">{{ member.name }}</a>: {{ member.balance }}</li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No members found.</p>
+  {% endif %}
+{% endwith %}
+
+<h2>Recipients</h2>
+{% with recipients=group.recipients.all %}
+  {% if recipients %}
+    <ul>
+      {% for recipient in recipients %}
+        <li>{{ recipient.name }}</li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No recipients found.</p>
+  {% endif %}
+{% endwith %}
+
+{% if group.use_categories %}
+  <h2>Categories</h2>
+  {% with categories=group.categories.all %}
+    {% if categories %}
+      <ul>
+        {% for category in categories %}
+          <li>{{ category.name }}</li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>No categories found.</p>
+    {% endif %}
+  {% endwith %}
+{% endif %}

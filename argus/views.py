@@ -1,24 +1,59 @@
 from django.db import models
-from django.views.generic import DetailView
+from django.db.models import Q
+from django.http import Http404
+from django.views.generic import DetailView, ListView
 
-from argus.models import Member
+from argus.models import Member, Group, Share
 
 
-class MemberView(DetailView):
+class GroupListView(ListView):
+    model = Group
+    template_name = 'argus/group_list.html'
+    context_object_name = 'groups'
+
+
+class GroupDetailView(DetailView):
+    model = Group
+    template_name = 'argus/group_detail.html'
+    context_object_name = 'group'
+
+    def get_object(self, queryset=None):
+        if queryset is None:
+            queryset = self.get_queryset()
+
+        queryset = queryset.filter(Q(auto_slug=self.kwargs['group_slug']) |
+                                   Q(custom_slug=self.kwargs['group_slug']))
+        try:
+            obj = queryset.get()
+        except queryset.model.DoesNotExist:
+            raise Http404
+
+        return obj
+
+    def get_queryset(self):
+        qs = super(GroupDetailView, self).get_queryset()
+        return qs.prefetch_related('members', 'recipients', 'categories')
+
+
+class MemberDetailView(DetailView):
     model = Member
-    template_name = 'argus/member.html'
+    template_name = 'argus/member_detail.html'
     context_object_name = 'member'
 
     def get_queryset(self):
-        qs = super(MemberView, self).get_queryset()
-        return qs.filter(models.Q(group__auto_slug=self.kwargs['group_slug']) |
-                         models.Q(group__custom_slug=self.kwargs['group_slug']))
+        qs = super(MemberDetailView, self).get_queryset()
+        qs = qs.select_related('group')
+        return qs.filter(Q(group__auto_slug=self.kwargs['group_slug']) |
+                         Q(group__custom_slug=self.kwargs['group_slug']))
 
     def get_context_data(self, **kwargs):
-        context = super(MemberView, self).get_context_data(**kwargs)
-        total_expense = self.object.expenses.aggregate(models.Sum('cost'))['cost__sum'] or 0
-        total_share = self.object.shares.aggregate(models.Sum('amount'))['amount__sum'] or 0
-        
-        owed = total_share - total_expense
-        context['owed'] = owed
+        context = super(MemberDetailView, self).get_context_data(**kwargs)
+        context['balance'] = self.object.balance
+        shares = Share.objects.filter(Q(member=self.object) |
+                                      (Q(expense__member=self.object) &
+                                       Q(expense__is_payment=True))
+                                      ).order_by('-expense__paid_at')
+        shares = shares.select_related('expense').distinct()
+        #import pdb; pdb.set_trace()
+        context['recent_shares'] = shares
         return context
