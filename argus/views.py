@@ -192,7 +192,7 @@ class GroupCreateView(RedirectView):
     def get_redirect_url(self, *args, **kwargs):
         while True:
             slug = hashlib.sha1(datetime.datetime.now().isoformat()).hexdigest()[:6]
-            if not Group.objects.filter(slug).exists():
+            if not Group.objects.filter(slug=slug).exists():
                 group = Group.objects.create(slug=slug)
                 break
         return group.get_absolute_url()
