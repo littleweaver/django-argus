@@ -1,12 +1,16 @@
 from django.conf.urls import patterns, url
 
-from argus.views import MemberDetailView, GroupListView, GroupDetailView
+from argus.views import (MemberDetailView, GroupListView, GroupDetailView,
+						 GroupCreateView)
 
 
 urlpatterns = patterns('',
 	url(r'^$',
 		GroupListView.as_view(),
 		name='argus_group_list'),
+	url(r'^create/',
+		GroupCreateView.as_view(),
+		name='argus_group_create'),
 	url(r'^(?P<group_slug>[\w-]+)/$',
 		GroupDetailView.as_view(),
 		name='argus_group_detail'),

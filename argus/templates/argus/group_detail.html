@@ -1,4 +1,4 @@
-<h1>{{ group.name }}</h1>
+<h1>{{ group.name|default:group.auto_slug }}</h1>
 
 <h2>Members</h2>
 {% with members=group.members.all %}

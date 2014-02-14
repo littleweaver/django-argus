@@ -1,9 +1,27 @@
+import datetime
+import hashlib
+
 from django.db import models
 from django.db.models import Q
 from django.http import Http404
-from django.views.generic import DetailView, ListView
+from django.views.generic import DetailView, ListView, RedirectView
 
 from argus.models import Member, Group, Share
+
+
+class GroupCreateView(RedirectView):
+    permanent = False
+
+    def get_redirect_url(self, *args, **kwargs):
+        created = False
+        while True:
+            slug = hashlib.sha1(datetime.datetime.now().isoformat()).hexdigest()[:6]
+            q = (Q(auto_slug=slug) |
+                 Q(custom_slug=slug))
+            if not Group.objects.filter(q).exists():
+                group = Group.objects.create(auto_slug=slug)
+                break
+        return group.get_absolute_url()
 
 
 class GroupListView(ListView):

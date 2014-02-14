@@ -12,10 +12,10 @@ from django.utils.translation import ugettext_lazy as _
 
 
 class Group(models.Model):
-    email = models.EmailField()
+    auto_slug = models.SlugField(max_length=15)
     name = models.CharField(max_length=64)
+    email = models.EmailField(blank=True)
     custom_slug = models.SlugField(max_length=30, blank=True)
-    auto_slug = models.SlugField(max_length=30)
     password = models.CharField(max_length=128, blank=True)
     use_categories = models.BooleanField(default=False)
     currency = models.CharField(max_length=3, default='USD')
