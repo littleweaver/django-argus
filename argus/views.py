@@ -9,7 +9,8 @@ from django.views.generic import (DetailView, ListView, RedirectView,
                                   UpdateView, FormView)
 from django.views.generic.edit import BaseUpdateView
 
-from argus.forms import GroupForm, GroupAuthenticationForm
+from argus.forms import (GroupForm, GroupAuthenticationForm,
+                         GroupChangePasswordForm)
 from argus.models import Member, Group, Share
 from argus.utils import login, logout
 
@@ -111,6 +112,15 @@ class GroupUpdateView(UpdateView):
         if _group_auth_needed(request, self.object):
             return _group_auth_redirect(self.object)
         return super(BaseUpdateView, self).get(request, *args, **kwargs)
+
+
+class GroupChangePasswordView(UpdateView):
+    model = Group
+    form_class = GroupChangePasswordForm
+    template_name = 'argus/group_password_change.html'
+
+    def get_success_url(self):
+        return reverse("argus_group_update", kwargs={'slug': self.object.slug})
 
 
 class MemberDetailView(DetailView):

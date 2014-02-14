@@ -1,7 +1,8 @@
 from django.conf.urls import patterns, url
 
 from argus.views import (MemberDetailView, GroupListView, GroupDetailView,
-						 GroupCreateView, GroupUpdateView, GroupLoginView)
+						 GroupCreateView, GroupUpdateView, GroupLoginView,
+						 GroupChangePasswordView)
 
 
 urlpatterns = patterns('',
@@ -17,6 +18,9 @@ urlpatterns = patterns('',
 	url(r'^(?P<slug>[\w-]+)/edit/$',
 		GroupUpdateView.as_view(),
 		name='argus_group_update'),
+	url(r'^(?P<slug>[\w-]+)/edit/change_password/$',
+		GroupChangePasswordView.as_view(),
+		name='argus_group_change_password'),
 	url(r'^(?P<slug>[\w-]+)/login/$',
 		GroupLoginView.as_view(),
 		name='argus_group_login'),

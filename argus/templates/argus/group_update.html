@@ -7,3 +7,5 @@
 	</table>
 	<button type="submit">Save changes</button>
 </form>
+
+<a href="{% url 'argus_group_change_password' slug=group.slug %}">{% if group.password %}Change{% else %}Add{% endif %} password</a>
