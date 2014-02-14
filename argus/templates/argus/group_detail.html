@@ -2,6 +2,8 @@
 
 <a href="{% url 'argus_group_update' slug=group.slug %}">Edit group settings</a>
 
+{% if group.password %}<a href="{% url 'argus_group_logout' %}">Logout</a>{% endif %}
+
 <h2>Members</h2>
 {% with members=group.members.all %}
   {% if members %}

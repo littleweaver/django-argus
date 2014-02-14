@@ -7,3 +7,5 @@
 	</table>
 	<button type="submit">Login</button>
 </form>
+
+{% if group.confirmed_email %}<a href="{% url 'argus_group_password_reset' slug=group.slug %}">Send password reset email</a>{% endif %}

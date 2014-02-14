@@ -1,13 +1,52 @@
 from django import forms
+from django.conf import settings
+from django.contrib.sites.shortcuts import get_current_site
+from django.core.mail import send_mail
+from django.template import loader
 from django.utils.translation import ugettext_lazy as _
 
 from argus.models import Group
+from argus.tokens import token_generators
 
 
 class GroupForm(forms.ModelForm):
+    subject_template_name = "argus/mail/group_email_confirm_subject.txt"
+    body_template_name = "argus/mail/group_email_confirm_body.txt"
+    html_email_template_name = None
+    generator = token_generators['email_confirm']
+
     class Meta:
         model = Group
-        exclude = ('password',)
+        exclude = ('password', 'confirmed_email',)
+
+    def __init__(self, request, *args, **kwargs):
+        self.request = request
+        super(GroupForm, self).__init__(*args, **kwargs)
+
+    def save(self, *args, **kwargs):
+        instance = super(GroupForm, self).save(*args, **kwargs)
+        if 'email' in self.changed_data:
+            # Send confirmation link.
+            context = {
+                'group': instance,
+                'email': instance.email,
+                'site': get_current_site(self.request),
+                'token': self.generator.make_token(instance),
+                'protocol': 'https' if self.request.is_secure() else 'http',
+            }
+            from_email = settings.DEFAULT_FROM_EMAIL
+
+            subject = loader.render_to_string(self.subject_template_name, context)
+            # Email subject *must not* contain newlines
+            subject = ''.join(subject.splitlines())
+            body = loader.render_to_string(self.body_template_name, context)
+
+            if self.html_email_template_name:
+                html_email = loader.render_to_string(html_email_template_name, context)
+            else:
+                html_email = None
+            send_mail(subject, body, from_email, [instance.email], html_message=html_email)
+        return instance
 
 
 class GroupAuthenticationForm(forms.Form):

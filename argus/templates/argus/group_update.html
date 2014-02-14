@@ -8,4 +8,11 @@
 	<button type="submit">Save changes</button>
 </form>
 
-<a href="{% url 'argus_group_change_password' slug=group.slug %}">{% if group.password %}Change{% else %}Add{% endif %} password</a>
+{% if group.confirmed_email %}
+	<p>Confirmed email: {{ group.confirmed_email }}</p>
+{% endif %}
+{% if group.email and group.email != group.confirmed_email %}
+	<p>Unconfirmed email: {{ group.email }}</p>
+{% endif %}
+
+<p><a href="{% url 'argus_group_change_password' slug=group.slug %}">{% if group.password %}Change{% else %}Add{% endif %} password</a></p>

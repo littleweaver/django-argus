@@ -1,0 +1,1 @@
+{{ protocol }}://{{ site.domain }}{% url "argus_group_email_confirm" slug=group.slug token=token %}

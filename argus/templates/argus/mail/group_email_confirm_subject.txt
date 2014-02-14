@@ -1,0 +1,1 @@
+Confirm email for {{ site.name }} (Group {{ group.name|default:group.slug }})

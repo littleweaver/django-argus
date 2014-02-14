@@ -17,6 +17,7 @@ class Group(models.Model):
     slug = models.SlugField(max_length=50, unique=True)
     name = models.CharField(max_length=64)
     email = models.EmailField(blank=True)
+    confirmed_email = models.EmailField(blank=True)
     password = models.CharField(max_length=128, blank=True)
     use_categories = models.BooleanField(default=False)
     currency = models.CharField(max_length=3, default='USD')
