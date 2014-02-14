@@ -4,8 +4,10 @@ import hashlib
 from django.db import models
 from django.db.models import Q
 from django.http import Http404
-from django.views.generic import DetailView, ListView, RedirectView
+from django.views.generic import (DetailView, ListView, RedirectView,
+                                  UpdateView)
 
+from argus.forms import GroupForm
 from argus.models import Member, Group, Share
 
 
@@ -51,6 +53,25 @@ class GroupDetailView(DetailView):
     def get_queryset(self):
         qs = super(GroupDetailView, self).get_queryset()
         return qs.prefetch_related('members', 'recipients', 'categories')
+
+
+class GroupUpdateView(UpdateView):
+    model = Group
+    form_class = GroupForm
+    template_name = 'argus/group_update.html'
+
+    def get_object(self, queryset=None):
+        if queryset is None:
+            queryset = self.get_queryset()
+
+        queryset = queryset.filter(Q(auto_slug=self.kwargs['group_slug']) |
+                                   Q(custom_slug=self.kwargs['group_slug']))
+        try:
+            obj = queryset.get()
+        except queryset.model.DoesNotExist:
+            raise Http404
+
+        return obj
 
 
 class MemberDetailView(DetailView):
