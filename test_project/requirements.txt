@@ -1,0 +1,4 @@
+-e git+git://github.com/django/django.git@master#egg=Django
+# Not strictly required, but we will definitely be using it eventually.
+Pillow==2.3.0
+pytz==2013.9
