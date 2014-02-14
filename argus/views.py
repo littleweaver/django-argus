@@ -238,7 +238,7 @@ class GroupUpdateView(UpdateView):
         return super(BaseUpdateView, self).get(request, *args, **kwargs)
 
     def get_success_url(self):
-        return self.request.path
+        return reverse('argus_group_update', kwargs={'slug': self.object.slug})
 
 
 class GroupChangePasswordView(UpdateView):
