@@ -14,7 +14,7 @@ from django.utils.translation import ugettext_lazy as _
 class Group(models.Model):
     SESSION_KEY = '_argus_group_id'
 
-    slug = models.SlugField(max_length=50)
+    slug = models.SlugField(max_length=50, unique=True)
     name = models.CharField(max_length=64)
     email = models.EmailField(blank=True)
     password = models.CharField(max_length=128, blank=True)
