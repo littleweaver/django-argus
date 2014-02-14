@@ -23,7 +23,7 @@ class Group(models.Model):
     currency = models.CharField(max_length=3, default='USD')
 
     def __unicode__(self):
-        return smart_text(self.name)
+        return smart_text(self.name or self.slug)
 
     def get_absolute_url(self):
         return reverse("argus_group_detail",

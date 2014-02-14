@@ -2,7 +2,7 @@
 {% if groups %}
   <ul>
     {% for group in groups %}
-      <li><a href="{{ group.get_absolute_url }}">{{ group.name }}</a></li>
+      <li><a href="{{ group.get_absolute_url }}">{{ group.name|default:group.slug }}</a></li>
     {% endfor %}
   </ul>
 {% else %}
