@@ -27,8 +27,7 @@ def _group_auth_needed(request, group):
 
 def _group_auth_redirect(group):
     return HttpResponseRedirect(reverse("argus_group_login",
-                                kwargs={'group_slug': group.custom_slug or
-                                                      group.auto_slug}))
+                                kwargs={'slug': group.slug}))
 
 
 class GroupLoginView(FormView):
@@ -38,8 +37,7 @@ class GroupLoginView(FormView):
     def get_form_kwargs(self):
         kwargs = super(GroupLoginView, self).get_form_kwargs()
 
-        qs = Group.objects.filter(Q(auto_slug=self.kwargs['group_slug']) |
-                                  Q(custom_slug=self.kwargs['group_slug']))
+        qs = Group.objects.filter(slug=self.kwargs['slug'])
         try:
             self.object = qs.get()
         except Group.DoesNotExist:
@@ -72,13 +70,10 @@ class GroupCreateView(RedirectView):
     permanent = False
 
     def get_redirect_url(self, *args, **kwargs):
-        created = False
         while True:
             slug = hashlib.sha1(datetime.datetime.now().isoformat()).hexdigest()[:6]
-            q = (Q(auto_slug=slug) |
-                 Q(custom_slug=slug))
-            if not Group.objects.filter(q).exists():
-                group = Group.objects.create(auto_slug=slug)
+            if not Group.objects.filter(slug).exists():
+                group = Group.objects.create(slug=slug)
                 break
         return group.get_absolute_url()
 
@@ -93,19 +88,6 @@ class GroupDetailView(DetailView):
     model = Group
     template_name = 'argus/group_detail.html'
     context_object_name = 'group'
-
-    def get_object(self, queryset=None):
-        if queryset is None:
-            queryset = self.get_queryset()
-
-        queryset = queryset.filter(Q(auto_slug=self.kwargs['group_slug']) |
-                                   Q(custom_slug=self.kwargs['group_slug']))
-        try:
-            obj = queryset.get()
-        except queryset.model.DoesNotExist:
-            raise Http404
-
-        return obj
 
     def get_queryset(self):
         qs = super(GroupDetailView, self).get_queryset()
@@ -124,19 +106,6 @@ class GroupUpdateView(UpdateView):
     form_class = GroupForm
     template_name = 'argus/group_update.html'
 
-    def get_object(self, queryset=None):
-        if queryset is None:
-            queryset = self.get_queryset()
-
-        queryset = queryset.filter(Q(auto_slug=self.kwargs['group_slug']) |
-                                   Q(custom_slug=self.kwargs['group_slug']))
-        try:
-            obj = queryset.get()
-        except queryset.model.DoesNotExist:
-            raise Http404
-
-        return obj
-
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
         if _group_auth_needed(request, self.object):
@@ -152,8 +121,7 @@ class MemberDetailView(DetailView):
     def get_queryset(self):
         qs = super(MemberDetailView, self).get_queryset()
         qs = qs.select_related('group')
-        return qs.filter(Q(group__auto_slug=self.kwargs['group_slug']) |
-                         Q(group__custom_slug=self.kwargs['group_slug']))
+        return qs.filter(group__slug=self.kwargs['group_slug'])
 
     def get_context_data(self, **kwargs):
         context = super(MemberDetailView, self).get_context_data(**kwargs)

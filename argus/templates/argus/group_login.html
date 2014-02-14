@@ -1,4 +1,4 @@
-<h1>Log in to {{ group.name|default:group.auto_slug }}</h1>
+<h1>Log in to {{ group.name|default:group.slug }}</h1>
 
 <form action="{{ request.path }}" method="post">
 	{% csrf_token %}

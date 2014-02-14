@@ -14,10 +14,9 @@ from django.utils.translation import ugettext_lazy as _
 class Group(models.Model):
     SESSION_KEY = '_argus_group_id'
 
-    auto_slug = models.SlugField(max_length=15)
+    slug = models.SlugField(max_length=50)
     name = models.CharField(max_length=64)
     email = models.EmailField(blank=True)
-    custom_slug = models.SlugField(max_length=30, blank=True)
     password = models.CharField(max_length=128, blank=True)
     use_categories = models.BooleanField(default=False)
     currency = models.CharField(max_length=3, default='USD')
@@ -27,7 +26,7 @@ class Group(models.Model):
 
     def get_absolute_url(self):
         return reverse("argus_group_detail",
-                       kwargs={"group_slug": self.custom_slug or self.auto_slug})
+                       kwargs={"slug": self.slug})
 
     def set_password(self, raw_password):
         self.password = make_password(raw_password)
@@ -54,7 +53,7 @@ class Member(models.Model):
     def get_absolute_url(self):
         return reverse("argus_member_detail",
                        kwargs={
-                           "group_slug": self.group.custom_slug or self.group.auto_slug,
+                           "group_slug": self.group.slug,
                            "pk": self.pk,
                        })
 
