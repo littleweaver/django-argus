@@ -1,14 +1,71 @@
 import datetime
 import hashlib
 
+from django.core.urlresolvers import reverse
 from django.db import models
 from django.db.models import Q
-from django.http import Http404
+from django.http import Http404, HttpResponseRedirect
 from django.views.generic import (DetailView, ListView, RedirectView,
-                                  UpdateView)
+                                  UpdateView, FormView)
+from django.views.generic.edit import BaseUpdateView
 
-from argus.forms import GroupForm
+from argus.forms import GroupForm, GroupAuthenticationForm
 from argus.models import Member, Group, Share
+from argus.utils import login, logout
+
+
+def _group_auth_needed(request, group):
+    if request.user.is_authenticated() and request.user.is_superuser:
+        return False
+    if group.password:
+        auth_group_id = request.session.get(Group.SESSION_KEY)
+        if auth_group_id is None or auth_group_id != group.pk:
+            return True
+    return False
+                
+
+
+def _group_auth_redirect(group):
+    return HttpResponseRedirect(reverse("argus_group_login",
+                                kwargs={'group_slug': group.custom_slug or
+                                                      group.auto_slug}))
+
+
+class GroupLoginView(FormView):
+    form_class = GroupAuthenticationForm
+    template_name = 'argus/group_login.html'
+
+    def get_form_kwargs(self):
+        kwargs = super(GroupLoginView, self).get_form_kwargs()
+
+        qs = Group.objects.filter(Q(auto_slug=self.kwargs['group_slug']) |
+                                  Q(custom_slug=self.kwargs['group_slug']))
+        try:
+            self.object = qs.get()
+        except Group.DoesNotExist:
+            raise Http404("Group doesn't exist")
+
+        if not self.object.password:
+            raise Http404("Group doesn't have a password")
+
+        kwargs.update({
+            'group': self.object,
+            'request': self.request,
+        })
+        return kwargs
+
+    def form_valid(self, form):
+        login(self.request, form.group)
+        self.object = form.group
+        return super(GroupLoginView, self).form_valid(form)
+
+    def get_success_url(self):
+        return self.object.get_absolute_url()
+
+    def get_context_data(self, **kwargs):
+        context = super(GroupLoginView, self).get_context_data(**kwargs)
+        context['group'] = self.object
+        return context
 
 
 class GroupCreateView(RedirectView):
@@ -54,6 +111,13 @@ class GroupDetailView(DetailView):
         qs = super(GroupDetailView, self).get_queryset()
         return qs.prefetch_related('members', 'recipients', 'categories')
 
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        if _group_auth_needed(request, self.object):
+            return _group_auth_redirect(self.object)
+        context = self.get_context_data(object=self.object)
+        return self.render_to_response(context)
+
 
 class GroupUpdateView(UpdateView):
     model = Group
@@ -72,6 +136,12 @@ class GroupUpdateView(UpdateView):
             raise Http404
 
         return obj
+
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        if _group_auth_needed(request, self.object):
+            return _group_auth_redirect(self.object)
+        return super(BaseUpdateView, self).get(request, *args, **kwargs)
 
 
 class MemberDetailView(DetailView):
@@ -93,6 +163,12 @@ class MemberDetailView(DetailView):
                                        Q(expense__is_payment=True))
                                       ).order_by('-expense__paid_at')
         shares = shares.select_related('expense').distinct()
-        #import pdb; pdb.set_trace()
         context['recent_shares'] = shares
         return context
+
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        if _group_auth_needed(request, self.object.group):
+            return _group_auth_redirect(self.object.group)
+        context = self.get_context_data(object=self.object)
+        return self.render_to_response(context)

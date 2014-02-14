@@ -3,7 +3,7 @@
 from decimal import Decimal
 import random
 
-from django.contrib.auth.hashers import make_password
+from django.contrib.auth.hashers import make_password, check_password
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils.encoding import smart_text
@@ -12,6 +12,8 @@ from django.utils.translation import ugettext_lazy as _
 
 
 class Group(models.Model):
+    SESSION_KEY = '_argus_group_id'
+
     auto_slug = models.SlugField(max_length=15)
     name = models.CharField(max_length=64)
     email = models.EmailField(blank=True)
