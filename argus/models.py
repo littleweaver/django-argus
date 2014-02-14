@@ -15,7 +15,7 @@ class Group(models.Model):
     SESSION_KEY = '_argus_group_id'
 
     slug = models.SlugField(max_length=50, unique=True)
-    name = models.CharField(max_length=64)
+    name = models.CharField(max_length=64, blank=True)
     email = models.EmailField(blank=True)
     confirmed_email = models.EmailField(blank=True)
     password = models.CharField(max_length=128, blank=True)
