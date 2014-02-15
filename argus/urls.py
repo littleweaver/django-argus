@@ -1,11 +1,13 @@
 from django.conf.urls import patterns, url
 from django.views.generic import TemplateView
 
+from argus.models import Member, Recipient
 from argus.views import (MemberDetailView, GroupListView, GroupDetailView,
                          GroupCreateView, GroupUpdateView, GroupLoginView,
                          GroupChangePasswordView, GroupPasswordResetTokenView,
                          GroupPasswordResetConfirmView, GroupEmailConfirmView,
-                         GroupLogoutView)
+                         GroupLogoutView, GroupRelatedCreateView,
+                         RecipientDetailView)
 
 
 urlpatterns = patterns('',
@@ -49,4 +51,18 @@ urlpatterns = patterns('',
     url(r'^(?P<group_slug>[\w-]+)/m/(?P<pk>\d+)/$',
         MemberDetailView.as_view(),
         name='argus_member_detail'),
+    url(r'^(?P<group_slug>[\w-]+)/m/add/$',
+        GroupRelatedCreateView.as_view(template_name="argus/member_create.html",
+                                       context_object_name="member",
+                                       model=Member),
+        name='argus_member_create'),
+
+    url(r'^(?P<group_slug>[\w-]+)/r/(?P<pk>\d+)/$',
+        RecipientDetailView.as_view(),
+        name='argus_recipient_detail'),
+    url(r'^(?P<group_slug>[\w-]+)/r/add/$',
+        GroupRelatedCreateView.as_view(template_name="argus/recipient_create.html",
+                                       context_object_name="recipient",
+                                       model=Recipient),
+        name='argus_recipient_create'),
 )

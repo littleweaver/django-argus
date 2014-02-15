@@ -1,0 +1,36 @@
+{% extends "argus/__base.html" %}
+
+{% block title %}{{ recipient.name }} – {{ recipient.group.name }} – {{block.super }}{% endblock %}
+
+{% block content %}
+<pre>Name: {{ recipient.name }}</pre>
+<pre>Group: <a href="{{ recipient.group.get_absolute_url }}">{{ recipient.group }}</a></pre>
+<pre>Total expense: {{ total_expense }}</pre>
+
+<table>
+  <thead>
+    <tr>
+      <th>Paid at</th>
+      <th>Paid by</th>
+      <th>Memo</th>
+      <th>Cost ({{ recipient.group.currency }})</th>
+      {% if recipient.group.use_categories %}
+        <th>Category</th>
+      {% endif %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for expense in recent_expenses|slice:":10" %}
+      <tr>
+        <td>{{ expense.paid_at|date:"Y-m-d H:i:s" }}</td>
+        <td><a href="{{ expense.member.get_absolute_url }}">{{ expense.member.name }}</a></td>
+        <td>{{ expense.memo }}</td>
+        <td>{{ expense.cost }}</td>
+        {% if recipient.group.use_categories %}
+          <td>{{ expense.category }}</td>
+        {% endif %}
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

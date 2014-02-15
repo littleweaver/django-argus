@@ -6,16 +6,18 @@ from django.contrib.auth.forms import SetPasswordForm
 from django.contrib.sites.shortcuts import get_current_site
 from django.core.mail import send_mail
 from django.core.urlresolvers import reverse
+from django.db import models
 from django.db.models import Q
+from django.forms.models import modelform_factory
 from django.http import Http404, HttpResponseRedirect
 from django.template import loader
 from django.views.generic import (DetailView, ListView, RedirectView,
-                                  UpdateView, FormView)
+                                  UpdateView, FormView, CreateView)
 from django.views.generic.edit import BaseUpdateView
 
 from argus.forms import (GroupForm, GroupAuthenticationForm,
-                         GroupChangePasswordForm)
-from argus.models import Member, Group, Share
+                         GroupChangePasswordForm, GroupRelatedForm)
+from argus.models import Member, Group, Share, Recipient
 from argus.tokens import token_generators
 from argus.utils import login, logout
 
@@ -253,6 +255,29 @@ class GroupChangePasswordView(UpdateView):
         return reverse("argus_group_update", kwargs={'slug': self.object.slug})
 
 
+class GroupRelatedCreateView(CreateView):
+    form_class = GroupRelatedForm
+
+    def get_form_class(self):
+        return modelform_factory(self.model, self.form_class)
+
+    def get_form_kwargs(self):
+        kwargs = super(GroupRelatedCreateView, self).get_form_kwargs()
+        try:
+            kwargs['group'] = Group.objects.get(slug=self.kwargs['group_slug'])
+        except Group.DoesNotExist:
+            raise Http404
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super(GroupRelatedCreateView, self).get_context_data(**kwargs)
+        context['group'] = context['form'].group
+        return context
+
+    def get_success_url(self):
+        return self.object.group.get_absolute_url()
+
+
 class MemberDetailView(DetailView):
     model = Member
     template_name = 'argus/member_detail.html'
@@ -272,6 +297,32 @@ class MemberDetailView(DetailView):
                                       ).order_by('-expense__paid_at')
         shares = shares.select_related('expense').distinct()
         context['recent_shares'] = shares
+        return context
+
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        if _group_auth_needed(request, self.object.group):
+            return _group_auth_redirect(self.object.group)
+        context = self.get_context_data(object=self.object)
+        return self.render_to_response(context)
+
+
+class RecipientDetailView(DetailView):
+    model = Recipient
+    template_name = 'argus/recipient_detail.html'
+    context_object_name = 'recipient'
+
+    def get_queryset(self):
+        qs = super(RecipientDetailView, self).get_queryset()
+        qs = qs.select_related('group')
+        return qs.filter(group__slug=self.kwargs['group_slug'])
+
+    def get_context_data(self, **kwargs):
+        context = super(RecipientDetailView, self).get_context_data(**kwargs)
+        expenses = self.object.expenses.all()
+        context['total_expense'] = expenses.aggregate(models.Sum('cost'))['cost__sum']
+        expenses = expenses.order_by('-paid_at')
+        context['recent_expenses'] = expenses
         return context
 
     def get(self, request, *args, **kwargs):

@@ -4,7 +4,7 @@
 
 {% if group.password %}<a href="{% url 'argus_group_logout' %}">Logout</a>{% endif %}
 
-<h2>Members</h2>
+<h2>Members <small><a href="{% url 'argus_member_create' group_slug=group.slug %}">Add member</a></small></h2>
 {% with members=group.members.all %}
   {% if members %}
     <ul>
@@ -17,12 +17,12 @@
   {% endif %}
 {% endwith %}
 
-<h2>Recipients</h2>
+<h2>Recipients <small><a href="{% url 'argus_recipient_create' group_slug=group.slug %}">Add recipient</a></small></h2>
 {% with recipients=group.recipients.all %}
   {% if recipients %}
     <ul>
       {% for recipient in recipients %}
-        <li>{{ recipient.name }}</li>
+        <li><a href="{{ recipient.get_absolute_url }}">{{ recipient.name }}</a></li>
       {% endfor %}
     </ul>
   {% else %}

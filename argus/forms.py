@@ -120,3 +120,16 @@ class GroupChangePasswordForm(forms.ModelForm):
         if commit:
             self.instance.save()
         return self.instance
+
+
+class GroupRelatedForm(forms.ModelForm):
+    class Meta:
+        exclude = ('group',)
+
+    def __init__(self, group, *args, **kwargs):
+        self.group = group
+        super(GroupRelatedForm, self).__init__(*args, **kwargs)
+
+    def _post_clean(self):
+        super(GroupRelatedForm, self)._post_clean()
+        self.instance.group = self.group

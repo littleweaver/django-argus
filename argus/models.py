@@ -76,6 +76,10 @@ class Recipient(models.Model):
     def __unicode__(self):
         return smart_text(self.name)
 
+    def get_absolute_url(self):
+        return reverse('argus_recipient_detail',
+                       kwargs={'group_slug': self.group.slug, 'pk': self.pk})
+
 
 class Category(models.Model):
     name = models.CharField(max_length=64)
