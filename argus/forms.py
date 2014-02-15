@@ -36,16 +36,19 @@ class GroupForm(forms.ModelForm):
             }
             from_email = settings.DEFAULT_FROM_EMAIL
 
-            subject = loader.render_to_string(self.subject_template_name, context)
+            subject = loader.render_to_string(self.subject_template_name,
+                                              context)
             # Email subject *must not* contain newlines
             subject = ''.join(subject.splitlines())
             body = loader.render_to_string(self.body_template_name, context)
 
             if self.html_email_template_name:
-                html_email = loader.render_to_string(html_email_template_name, context)
+                html_email = loader.render_to_string(self.html_email_template_name,
+                                                     context)
             else:
                 html_email = None
-            send_mail(subject, body, from_email, [instance.email], html_message=html_email)
+            send_mail(subject, body, from_email, [instance.email],
+                      html_message=html_email)
         return instance
 
 

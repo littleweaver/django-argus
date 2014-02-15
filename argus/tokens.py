@@ -16,7 +16,8 @@ class BaseTokenGenerator(object):
     key_salt = "django.argus.BaseTokenGenerator"
 
     def make_token(self, instance):
-        return self._make_token_with_timestamp(instance, self._num_days(self._today()))
+        return self._make_token_with_timestamp(instance,
+                                               self._num_days(self._today()))
 
     def check_token(self, instance, token):
         """
@@ -77,7 +78,8 @@ class BaseTokenGenerator(object):
         return settings.PASSWORD_RESET_TIMEOUT_DAYS
 
     def _instance_state(self, instance):
-        # Subclasses must return a list of state that changes once the token is used.
+        # Subclasses must return a list of state that changes once the token
+        # is used.
         raise NotImplementedError
 
 

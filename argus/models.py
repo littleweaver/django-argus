@@ -99,7 +99,7 @@ class ExpenseManager(models.Manager):
             kwargs['memo'] = (_("Payment: ") + from_member.name +
                               " -> " + to_member.name)
         expense = self.create(**kwargs)
-        share = Share.objects.create(
+        Share.objects.create(
             expense=expense,
             member=to_member,
             portion=1,
@@ -151,9 +151,7 @@ class ShareManager(models.Manager):
     def create_even(self, expense, members):
         shares = [Share(expense=expense,
                         member=member,
-                        portion=portion,
                         portion_is_manual=False,
-                        amount=share_amount,
                         amount_is_manual=False)
                   for member in members]
         self._set_even(shares, expense.cost)
@@ -178,7 +176,7 @@ class ShareManager(models.Manager):
 
         if share_amount * len(shares) < total_cost:
             share = random.choice(shares)
-            share.amount = cost - (share_amount * (len(shares) - 1))
+            share.amount = total_cost - (share_amount * (len(shares) - 1))
 
 
 class Share(models.Model):

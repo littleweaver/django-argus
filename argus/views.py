@@ -6,12 +6,11 @@ from django.contrib.auth.forms import SetPasswordForm
 from django.contrib.sites.shortcuts import get_current_site
 from django.core.mail import send_mail
 from django.core.urlresolvers import reverse
-from django.db import models
 from django.db.models import Q
 from django.http import Http404, HttpResponseRedirect
 from django.template import loader
 from django.views.generic import (DetailView, ListView, RedirectView,
-                                  UpdateView, FormView, TemplateView)
+                                  UpdateView, FormView)
 from django.views.generic.edit import BaseUpdateView
 
 from argus.forms import (GroupForm, GroupAuthenticationForm,
@@ -29,7 +28,6 @@ def _group_auth_needed(request, group):
         if auth_group_id is None or auth_group_id != group.pk:
             return True
     return False
-                
 
 
 def _group_auth_redirect(group):
@@ -65,16 +63,19 @@ class TokenView(DetailView):
 
     def send_email(self, email_context):
         from_email = settings.DEFAULT_FROM_EMAIL
-        subject = loader.render_to_string(self.subject_template_name, email_context)
+        subject = loader.render_to_string(self.subject_template_name,
+                                          email_context)
             # Email subject *must not* contain newlines
         subject = ''.join(subject.splitlines())
         body = loader.render_to_string(self.body_template_name, email_context)
 
         if self.html_email_template_name:
-            html_email = loader.render_to_string(html_email_template_name, email_context)
+            html_email = loader.render_to_string(self.html_email_template_name,
+                                                 email_context)
         else:
             html_email = None
-        send_mail(subject, body, from_email, [email_context['email']], html_message=html_email)
+        send_mail(subject, body, from_email, [email_context['email']],
+                  html_message=html_email)
 
 
 class GroupPasswordResetTokenView(TokenView):
@@ -119,7 +120,8 @@ class GroupPasswordResetConfirmView(FormView):
         return context
 
     def get_success_url(self):
-        return reverse('argus_group_password_reset_done', kwargs={'slug': self.group.slug})
+        return reverse('argus_group_password_reset_done',
+                       kwargs={'slug': self.group.slug})
 
     def form_valid(self, form):
         form.save()
@@ -191,7 +193,8 @@ class GroupCreateView(RedirectView):
 
     def get_redirect_url(self, *args, **kwargs):
         while True:
-            slug = hashlib.sha1(datetime.datetime.now().isoformat()).hexdigest()[:6]
+            slug = hashlib.sha1(datetime.datetime.now().isoformat()
+                                ).hexdigest()[:6]
             if not Group.objects.filter(slug=slug).exists():
                 group = Group.objects.create(slug=slug)
                 break
