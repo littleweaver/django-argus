@@ -22,6 +22,8 @@ class Group(models.Model):
     use_categories = models.BooleanField(default=False)
     currency = models.CharField(max_length=3, default='USD')
 
+    created = models.DateTimeField(default=now)
+
     def __unicode__(self):
         return smart_text(self.name or self.slug)
 
