@@ -7,7 +7,7 @@ from argus.views import (MemberDetailView, GroupListView, GroupDetailView,
                          GroupChangePasswordView, GroupPasswordResetTokenView,
                          GroupPasswordResetConfirmView, GroupEmailConfirmView,
                          GroupLogoutView, GroupRelatedCreateView,
-                         RecipientDetailView)
+                         RecipientDetailView, ExpenseCreateView)
 
 
 urlpatterns = patterns('',
@@ -65,4 +65,8 @@ urlpatterns = patterns('',
                                        context_object_name="recipient",
                                        model=Recipient),
         name='argus_recipient_create'),
+
+    url(r'^(?P<group_slug>[\w-]+)/expense/$',
+        ExpenseCreateView.as_view(),
+        name='argus_expense_create'),
 )

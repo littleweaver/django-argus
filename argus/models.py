@@ -99,7 +99,7 @@ class ExpenseManager(models.Manager):
         kwargs.update({
             'cost': amount,
             'member': from_member,
-            'is_payment': True,
+            'split': Expense.PAYMENT_SPLIT,
         })
         if 'memo' not in kwargs:
             kwargs['memo'] = (_("Payment: ") + from_member.name +
@@ -118,7 +118,7 @@ class ExpenseManager(models.Manager):
             'member': member,
             'cost': cost,
             'memo': memo,
-            'is_even': True,
+            'split': Expense.EVEN_SPLIT,
         })
 
         expense = self.create(**kwargs)
@@ -134,6 +134,19 @@ class Expense(models.Model):
     among some or all members.
 
     """
+    # Payment from one member to another.
+    PAYMENT_SPLIT = 'payment'
+    # Even split among all members.
+    EVEN_SPLIT = 'even'
+    # Manual split by expense creator.
+    MANUAL_SPLIT = 'manual'
+
+    SPLIT_CHOICES = (
+        (PAYMENT_SPLIT, _('Member-to-member payment')),
+        (EVEN_SPLIT, _('Even split')),
+        (MANUAL_SPLIT, _('Manual entry')),
+    )
+
     member = models.ForeignKey(Member, related_name='expenses')
     recipient = models.ForeignKey(Recipient, related_name='expenses',
                                   blank=True, null=True)
@@ -142,10 +155,9 @@ class Expense(models.Model):
     paid_at = models.DateTimeField(default=now)
     category = models.ForeignKey(Category, blank=True, null=True)
     notes = models.TextField(blank=True)
-    #: Is this a payment from one member to another?
-    is_payment = models.BooleanField(default=False)
-    #: Is this expense evenly split among all members?
-    is_even = models.BooleanField(default=False)
+    split = models.CharField(max_length=7,
+                             choices=SPLIT_CHOICES,
+                             default=MANUAL_SPLIT)
 
     objects = ExpenseManager()
 
@@ -171,18 +183,20 @@ class ShareManager(models.Manager):
             share.save()
 
     def _set_even(self, shares, total_cost):
-        portion = Decimal(1 / len(shares)).quantize(Decimal('.01'))
-        share_amount = (total_cost * portion).quantize(Decimal('.01'))
+        portion = (Decimal('1.00') / len(shares)).quantize(Decimal('.0001'))
+        share_amount = (total_cost / len(shares)).quantize(Decimal('.01'))
 
         for share in shares:
             share.portion = portion
-            share.portion_is_manual = True
+            share.portion_is_manual = False
             share.amount = share_amount
             share.amount_is_manual = False
 
-        if share_amount * len(shares) < total_cost:
+        if (share_amount * len(shares) != total_cost or
+                portion * len(shares) != 1):
             share = random.choice(shares)
             share.amount = total_cost - (share_amount * (len(shares) - 1))
+            share.portion = 1 - (portion * (len(shares) - 1))
 
 
 class Share(models.Model):

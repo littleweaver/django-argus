@@ -1,8 +1,10 @@
 <h1><a href="{{ group.get_absolute_url }}">{{ group.name|default:group.slug }}</a></h1>
 
-<a href="{% url 'argus_group_update' slug=group.slug %}">Edit group settings</a>
+<p><a href="{% url 'argus_group_update' slug=group.slug %}">Edit group settings</a></p>
 
-{% if group.password %}<a href="{% url 'argus_group_logout' %}">Logout</a>{% endif %}
+{% if group.password %}<p><a href="{% url 'argus_group_logout' %}">Logout</a></p>{% endif %}
+
+<p><a href="{% url 'argus_expense_create' group_slug=group.slug %}">Create expense</a></p>
 
 <h2>Members <small><a href="{% url 'argus_member_create' group_slug=group.slug %}">Add member</a></small></h2>
 {% with members=group.members.all %}

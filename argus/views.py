@@ -3,6 +3,7 @@ import hashlib
 
 from django.conf import settings
 from django.contrib.auth.forms import SetPasswordForm
+from django.contrib.formtools.wizard.views import SessionWizardView
 from django.contrib.sites.shortcuts import get_current_site
 from django.core.mail import send_mail
 from django.core.urlresolvers import reverse
@@ -16,8 +17,10 @@ from django.views.generic import (DetailView, ListView, RedirectView,
 from django.views.generic.edit import BaseUpdateView
 
 from argus.forms import (GroupForm, GroupAuthenticationForm,
-                         GroupChangePasswordForm, GroupRelatedForm)
-from argus.models import Member, Group, Share, Recipient
+                         GroupChangePasswordForm, GroupRelatedForm,
+                         ExpenseBasicCreateForm, ExpenseRecipientCreateForm,
+                         ExpensePaymentCreateForm, ExpenseShareCreateForm)
+from argus.models import Member, Group, Share, Recipient, Expense
 from argus.tokens import token_generators
 from argus.utils import login, logout
 
@@ -293,7 +296,7 @@ class MemberDetailView(DetailView):
         context['balance'] = self.object.balance
         shares = Share.objects.filter(Q(member=self.object) |
                                       (Q(expense__member=self.object) &
-                                       Q(expense__is_payment=True))
+                                       Q(expense__split=Expense.PAYMENT_SPLIT))
                                       ).order_by('-expense__paid_at')
         shares = shares.select_related('expense').distinct()
         context['recent_shares'] = shares
@@ -331,3 +334,52 @@ class RecipientDetailView(DetailView):
             return _group_auth_redirect(self.object.group)
         context = self.get_context_data(object=self.object)
         return self.render_to_response(context)
+
+
+def use_if(*args):
+    # Pass in the value that means it should be used.
+    def should_use(wizard):
+        cleaned_data = wizard.get_cleaned_data_for_step('0') or {}
+        return cleaned_data.get('split') in args
+    return should_use
+
+
+class ExpenseCreateView(SessionWizardView):
+    form_list = [ExpenseBasicCreateForm, ExpenseRecipientCreateForm,
+                 ExpensePaymentCreateForm, ExpenseShareCreateForm]
+    condition_dict = {
+        '1': use_if(Expense.EVEN_SPLIT, Expense.MANUAL_SPLIT),
+        '2': use_if(Expense.PAYMENT_SPLIT),
+        '3': use_if(Expense.MANUAL_SPLIT)
+    }
+    template_name = 'argus/expense_create.html'
+
+    def get_form_kwargs(self, step):
+        kwargs = super(ExpenseCreateView, self).get_form_kwargs(step)
+        try:
+            self.group = Group.objects.get(slug=self.kwargs['group_slug'])
+        except Group.DoesNotExist:
+            raise Http404
+        kwargs['group'] = self.group
+        return kwargs
+
+    def get_context_data(self, form, **kwargs):
+        context = super(ExpenseCreateView, self).get_context_data(form=form, **kwargs)
+        context['group'] = self.group
+        return context
+
+    def done(self, form_list, **kwargs):
+        expense_data = form_list[0].cleaned_data
+        if expense_data['split'] != Expense.PAYMENT_SPLIT:
+            recipient_data = form_list[1].cleaned_data
+            if 'recipient' in recipient_data:
+                expense_data['recipient'] = recipient_data['recipient']
+
+        if expense_data['split'] == Expense.EVEN_SPLIT:
+            Expense.objects.create_even(**expense_data)
+        elif expense_data['split'] == Expense.PAYMENT_SPLIT:
+            pass
+        else:
+            #handle formset data.
+            pass
+        return HttpResponseRedirect(self.group.get_absolute_url())

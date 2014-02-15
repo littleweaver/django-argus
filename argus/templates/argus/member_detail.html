@@ -26,7 +26,7 @@
       <tr>
         <td>{{ share.expense.paid_at|date:"Y-m-d H:i:s" }}</td>
         <td><a href="{{ share.expense.member.get_absolute_url }}">{{ share.expense.member.name }}</a></td>
-        <td>{% if share.expense.is_payment %}
+        <td>{% if share.expense.split == share.expense.PAYMENT_SPLIT %}
           <a href="{{ share.member.get_absolute_url }}">{{ share.member.name }}</a>
           {% else %}
           {{ share.expense.recipient }}

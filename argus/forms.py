@@ -5,7 +5,7 @@ from django.core.mail import send_mail
 from django.template import loader
 from django.utils.translation import ugettext_lazy as _
 
-from argus.models import Group
+from argus.models import Group, Expense, Member, Share
 from argus.tokens import token_generators
 
 
@@ -133,3 +133,47 @@ class GroupRelatedForm(forms.ModelForm):
     def _post_clean(self):
         super(GroupRelatedForm, self)._post_clean()
         self.instance.group = self.group
+
+
+class ExpenseBasicCreateForm(forms.ModelForm):
+    member = forms.ModelChoiceField(Member, widget=forms.RadioSelect)
+    split = Expense._meta.get_field('split'
+                                    ).formfield(widget=forms.RadioSelect)
+
+    class Meta:
+        model = Expense
+        exclude = ('recipient',)
+
+    def __init__(self, group, *args, **kwargs):
+        super(ExpenseBasicCreateForm, self).__init__(*args, **kwargs)
+        if not group.use_categories:
+            del self.fields['category']
+        else:
+            self.fields['category'].queryset = group.categories.all()
+        self.fields['member'].queryset = group.members.all()
+        self.fields['member'].empty_label = None
+
+
+# Used for even split or manual split.
+class ExpenseRecipientCreateForm(forms.ModelForm):
+    class Meta:
+        model = Expense
+        fields = ('recipient',)
+
+    def __init__(self, group, *args, **kwargs):
+        super(ExpenseRecipientCreateForm, self).__init__(*args, **kwargs)
+        self.fields['recipient'].queryset = group.recipients.all()
+
+
+class ExpensePaymentCreateForm(forms.Form):
+    member = forms.ModelChoiceField(Member, widget=forms.RadioSelect)
+
+    def __init__(self, group, *args, **kwargs):
+        super(ExpensePaymentCreateForm, self).__init__(*args, **kwargs)
+        self.fields['member'].queryset = group.members.all()
+
+
+class ExpenseShareCreateForm(forms.ModelForm):
+    class Meta:
+        model = Share
+        exclude = ('member',)
