@@ -33,12 +33,12 @@
 {% endwith %}
 
 {% if group.use_categories %}
-  <h2>Categories</h2>
+  <h2>Categories <small><a href="{% url 'argus_category_create' group_slug=group.slug %}">Add category</a></small></h2>
   {% with categories=group.categories.all %}
     {% if categories %}
       <ul>
         {% for category in categories %}
-          <li>{{ category.name }}</li>
+          <li><a href="{{ category.get_absolute_url }}">{{ category.name }}</a></li>
         {% endfor %}
       </ul>
     {% else %}

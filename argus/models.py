@@ -91,6 +91,10 @@ class Category(models.Model):
     def __unicode__(self):
         return smart_text(self.name)
 
+    def get_absolute_url(self):
+        return reverse('argus_category_detail',
+                       kwargs={'group_slug': self.group.slug, 'pk': self.pk})
+
 
 class ExpenseManager(models.Manager):
     def create_payment(self, from_member, to_member, amount, **kwargs):
@@ -153,7 +157,8 @@ class Expense(models.Model):
     memo = models.CharField(max_length=64)
     cost = models.DecimalField(max_digits=11, decimal_places=2)
     paid_at = models.DateTimeField(default=now)
-    category = models.ForeignKey(Category, blank=True, null=True)
+    category = models.ForeignKey(Category, blank=True, null=True,
+                                 related_name='expenses')
     notes = models.TextField(blank=True)
     split = models.CharField(max_length=7,
                              choices=SPLIT_CHOICES,

@@ -21,7 +21,7 @@ from argus.forms import (GroupForm, GroupAuthenticationForm,
                          GroupChangePasswordForm, GroupRelatedForm,
                          ExpenseBasicCreateForm, ExpenseRecipientCreateForm,
                          ExpensePaymentCreateForm, ExpenseShareCreateFormset)
-from argus.models import Member, Group, Share, Recipient, Expense
+from argus.models import Member, Group, Share, Recipient, Expense, Category
 from argus.tokens import token_generators
 from argus.utils import login, logout
 
@@ -269,7 +269,9 @@ class GroupRelatedCreateView(CreateView):
             try:
                 self.group = Group.objects.get(slug=kwargs['group_slug'])
             except Group.DoesNotExist:
-                raise Http404
+                raise Http404("Group does not exist.")
+            if self.model is Category and not self.group.use_categories:
+                raise Http404("use_categories is False for this group.")
             if _group_auth_needed(request, self.group):
                 return _group_auth_redirect(self.group)
         return super(GroupRelatedCreateView, self).dispatch(request,
@@ -347,6 +349,35 @@ class RecipientDetailView(DetailView):
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
+        if _group_auth_needed(request, self.object.group):
+            return _group_auth_redirect(self.object.group)
+        context = self.get_context_data(object=self.object)
+        return self.render_to_response(context)
+
+
+class CategoryDetailView(DetailView):
+    model = Category
+    template_name = 'argus/category_detail.html'
+    context_object_name = 'category'
+
+    def get_queryset(self):
+        qs = super(CategoryDetailView, self).get_queryset()
+        qs = qs.select_related('group')
+        return qs.filter(group__slug=self.kwargs['group_slug'])
+
+    def get_context_data(self, **kwargs):
+        context = super(CategoryDetailView, self).get_context_data(**kwargs)
+        expenses = self.object.expenses.all()
+        context['total_expense'] = expenses.aggregate(models.Sum('cost')
+                                                      )['cost__sum']
+        expenses = expenses.order_by('-paid_at')
+        context['recent_expenses'] = expenses
+        return context
+
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        if not self.object.group.use_categories:
+            raise Http404("use_categories is False for this group.")
         if _group_auth_needed(request, self.object.group):
             return _group_auth_redirect(self.object.group)
         context = self.get_context_data(object=self.object)
