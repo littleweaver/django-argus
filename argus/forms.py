@@ -171,6 +171,7 @@ class ExpensePaymentCreateForm(forms.Form):
     def __init__(self, group, *args, **kwargs):
         super(ExpensePaymentCreateForm, self).__init__(*args, **kwargs)
         self.fields['member'].queryset = group.members.all()
+        self.fields['member'].empty_label = None
 
 
 class ExpenseShareInputTypeForm(forms.Form):

@@ -384,7 +384,12 @@ class ExpenseCreateView(SessionWizardView):
             members = expense_data['member'].group.members.all()
             Share.objects.create_even(expense, members)
         elif expense_data['split'] == Expense.PAYMENT_SPLIT:
-            pass
+            Share.objects.create(expense=expense,
+                                 member=form_list[1].cleaned_data['member'],
+                                 portion=1,
+                                 portion_is_manual=False,
+                                 amount=expense.cost,
+                                 amount_is_manual=False)
         else:
             formset = form_list[2]
             input_type = formset.input_type_form.cleaned_data['input_type']
