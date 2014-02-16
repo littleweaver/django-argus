@@ -7,6 +7,8 @@
 <pre>Group: <a href="{{ member.group.get_absolute_url }}">{{ member.group }}</a></pre>
 <pre>Balance: {{ balance }} or {{ member.balance }}</pre>
 
+<p><a href="{% url 'argus_member_update' group_slug=member.group.slug pk=member.pk %}">Edit member</a></p>
+
 <table>
   <thead>
     <tr>

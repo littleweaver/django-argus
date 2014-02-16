@@ -261,7 +261,7 @@ class GroupChangePasswordView(UpdateView):
         return reverse("argus_group_update", kwargs={'slug': self.object.slug})
 
 
-class GroupRelatedCreateView(CreateView):
+class GroupRelatedFormMixin(object):
     form_class = GroupRelatedForm
 
     def dispatch(self, request, *args, **kwargs):
@@ -274,43 +274,68 @@ class GroupRelatedCreateView(CreateView):
                 raise Http404("use_categories is False for this group.")
             if _group_auth_needed(request, self.group):
                 return _group_auth_redirect(self.group)
-        return super(GroupRelatedCreateView, self).dispatch(request,
-                                                            *args,
-                                                            **kwargs)
+        return super(GroupRelatedFormMixin, self).dispatch(request,
+                                                           *args,
+                                                           **kwargs)
 
     def get_form_class(self):
         return modelform_factory(self.model, self.form_class)
 
     def get_form_kwargs(self):
-        kwargs = super(GroupRelatedCreateView, self).get_form_kwargs()
-        try:
-            kwargs['group'] = self.group
-        except Group.DoesNotExist:
-            raise Http404
+        kwargs = super(GroupRelatedFormMixin, self).get_form_kwargs()
+        kwargs['group'] = self.group
         return kwargs
 
     def get_context_data(self, **kwargs):
-        context = super(GroupRelatedCreateView, self
+        context = super(GroupRelatedFormMixin, self
                         ).get_context_data(**kwargs)
         context['group'] = context['form'].group
         return context
 
+
+class GroupRelatedCreateView(GroupRelatedFormMixin, CreateView):
     def get_success_url(self):
         return self.object.group.get_absolute_url()
 
 
-class MemberDetailView(DetailView):
-    model = Member
-    template_name = 'argus/member_detail.html'
-    context_object_name = 'member'
+class GroupRelatedUpdateView(GroupRelatedFormMixin, UpdateView):
+    def get_success_url(self):
+        return self.object.get_absolute_url()
 
+
+class GroupRelatedDetailView(DetailView):
     def get_queryset(self):
-        qs = super(MemberDetailView, self).get_queryset()
+        qs = super(GroupRelatedDetailView, self).get_queryset()
         qs = qs.select_related('group')
         return qs.filter(group__slug=self.kwargs['group_slug'])
 
     def get_context_data(self, **kwargs):
-        context = super(MemberDetailView, self).get_context_data(**kwargs)
+        context = super(GroupRelatedDetailView,
+                        self).get_context_data(**kwargs)
+        expenses = self.object.expenses.all()
+        context['total_expense'] = expenses.aggregate(models.Sum('cost')
+                                                      )['cost__sum']
+        expenses = expenses.order_by('-paid_at')
+        context['recent_expenses'] = expenses
+        return context
+
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        if _group_auth_needed(request, self.object.group):
+            return _group_auth_redirect(self.object.group)
+        context = self.get_context_data(object=self.object)
+        return self.render_to_response(context)
+
+
+class MemberDetailView(GroupRelatedDetailView):
+    model = Member
+    template_name = 'argus/member_detail.html'
+    context_object_name = 'member'
+
+    def get_context_data(self, **kwargs):
+        # Skip GroupDetailView context data.
+        context = super(GroupRelatedDetailView,
+                        self).get_context_data(**kwargs)
         context['balance'] = self.object.balance
         shares = Share.objects.filter(Q(member=self.object) |
                                       (Q(expense__member=self.object) &
@@ -320,59 +345,17 @@ class MemberDetailView(DetailView):
         context['recent_shares'] = shares
         return context
 
-    def get(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        if _group_auth_needed(request, self.object.group):
-            return _group_auth_redirect(self.object.group)
-        context = self.get_context_data(object=self.object)
-        return self.render_to_response(context)
 
-
-class RecipientDetailView(DetailView):
+class RecipientDetailView(GroupRelatedDetailView):
     model = Recipient
     template_name = 'argus/recipient_detail.html'
     context_object_name = 'recipient'
 
-    def get_queryset(self):
-        qs = super(RecipientDetailView, self).get_queryset()
-        qs = qs.select_related('group')
-        return qs.filter(group__slug=self.kwargs['group_slug'])
 
-    def get_context_data(self, **kwargs):
-        context = super(RecipientDetailView, self).get_context_data(**kwargs)
-        expenses = self.object.expenses.all()
-        context['total_expense'] = expenses.aggregate(models.Sum('cost')
-                                                      )['cost__sum']
-        expenses = expenses.order_by('-paid_at')
-        context['recent_expenses'] = expenses
-        return context
-
-    def get(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        if _group_auth_needed(request, self.object.group):
-            return _group_auth_redirect(self.object.group)
-        context = self.get_context_data(object=self.object)
-        return self.render_to_response(context)
-
-
-class CategoryDetailView(DetailView):
+class CategoryDetailView(GroupRelatedDetailView):
     model = Category
     template_name = 'argus/category_detail.html'
     context_object_name = 'category'
-
-    def get_queryset(self):
-        qs = super(CategoryDetailView, self).get_queryset()
-        qs = qs.select_related('group')
-        return qs.filter(group__slug=self.kwargs['group_slug'])
-
-    def get_context_data(self, **kwargs):
-        context = super(CategoryDetailView, self).get_context_data(**kwargs)
-        expenses = self.object.expenses.all()
-        context['total_expense'] = expenses.aggregate(models.Sum('cost')
-                                                      )['cost__sum']
-        expenses = expenses.order_by('-paid_at')
-        context['recent_expenses'] = expenses
-        return context
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
