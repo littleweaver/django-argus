@@ -1,5 +1,6 @@
 import datetime
 import hashlib
+import random
 
 from django.conf import settings
 from django.contrib.auth.forms import SetPasswordForm
@@ -19,7 +20,7 @@ from django.views.generic.edit import BaseUpdateView
 from argus.forms import (GroupForm, GroupAuthenticationForm,
                          GroupChangePasswordForm, GroupRelatedForm,
                          ExpenseBasicCreateForm, ExpenseRecipientCreateForm,
-                         ExpensePaymentCreateForm, ExpenseShareCreateForm)
+                         ExpensePaymentCreateForm, ExpenseShareCreateFormset)
 from argus.models import Member, Group, Share, Recipient, Expense
 from argus.tokens import token_generators
 from argus.utils import login, logout
@@ -346,7 +347,7 @@ def use_if(*args):
 
 class ExpenseCreateView(SessionWizardView):
     form_list = [ExpenseBasicCreateForm, ExpenseRecipientCreateForm,
-                 ExpensePaymentCreateForm, ExpenseShareCreateForm]
+                 ExpensePaymentCreateForm, ExpenseShareCreateFormset]
     condition_dict = {
         '1': use_if(Expense.EVEN_SPLIT, Expense.MANUAL_SPLIT),
         '2': use_if(Expense.PAYMENT_SPLIT),
@@ -360,6 +361,8 @@ class ExpenseCreateView(SessionWizardView):
             self.group = Group.objects.get(slug=self.kwargs['group_slug'])
         except Group.DoesNotExist:
             raise Http404
+        if step == '3':
+            kwargs['total_cost'] = self.get_cleaned_data_for_step('0')['cost']
         kwargs['group'] = self.group
         return kwargs
 
@@ -375,11 +378,42 @@ class ExpenseCreateView(SessionWizardView):
             if 'recipient' in recipient_data:
                 expense_data['recipient'] = recipient_data['recipient']
 
+        expense = Expense.objects.create(**expense_data)
+
         if expense_data['split'] == Expense.EVEN_SPLIT:
-            Expense.objects.create_even(**expense_data)
+            members = expense_data['member'].group.members.all()
+            Share.objects.create_even(expense, members)
         elif expense_data['split'] == Expense.PAYMENT_SPLIT:
             pass
         else:
-            #handle formset data.
-            pass
+            formset = form_list[2]
+            input_type = formset.input_type_form.cleaned_data['input_type']
+            is_portion = True if input_type == 'percent' else False
+            shares = [
+                Share(expense=expense,
+                      member=form.member,
+                      portion_is_manual=is_portion,
+                      amount_is_manual=not is_portion,
+                      portion=(form.cleaned_data['percent_or_amount'] / 100
+                               if is_portion else
+                               form.cleaned_data['percent_or_amount'] /
+                               expense.cost),
+                      amount=(form.cleaned_data['percent_or_amount']
+                              if not is_portion else expense.cost *
+                              (form.cleaned_data['percent_or_amount'] / 100))
+                      )
+                for form in formset.forms
+            ]
+            if is_portion:
+                share_total = sum([share.amount for share in shares])
+                if share_total != expense.cost:
+                    share = random.choice(shares)
+                    share.amount += expense.cost - share_total
+            else:
+                share_total = sum([share.portion for share in shares])
+                if share_total != 1:
+                    share = random.choice(shares)
+                    share.portion += 1 - share_total
+            Share.objects.bulk_create(shares)
+
         return HttpResponseRedirect(self.group.get_absolute_url())

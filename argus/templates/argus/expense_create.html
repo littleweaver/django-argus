@@ -8,7 +8,15 @@
         {{ wizard.management_form }}
         {% if wizard.form.forms %}
             {{ wizard.form.management_form }}
+            {% if wizard.form.non_form_errors %}
+                <tr>
+                    <td>{{ wizard.form.non_form_errors }}</td>
+                </tr>
+            {% endif %}
+            <tr><td>Total cost: {{ wizard.form.total_cost }} {{ wizard.form.group.currency }}</td></tr>
+            {{ wizard.form.input_type_form }}
             {% for form in wizard.form.forms %}
+                <tr><td>{{ form.member.name }}</td></tr>
                 {{ form }}
             {% endfor %}
         {% else %}

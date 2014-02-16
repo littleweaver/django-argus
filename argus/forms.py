@@ -173,7 +173,59 @@ class ExpensePaymentCreateForm(forms.Form):
         self.fields['member'].queryset = group.members.all()
 
 
-class ExpenseShareCreateForm(forms.ModelForm):
-    class Meta:
-        model = Share
-        exclude = ('member',)
+class ExpenseShareInputTypeForm(forms.Form):
+    input_type = forms.ChoiceField(widget=forms.RadioSelect,
+                                   choices=(('percent', _('Percent')),
+                                            ('amount', _('Amount'))))
+
+
+class ExpenseShareCreateForm(forms.Form):
+    percent_or_amount = forms.DecimalField(decimal_places=2, min_value=0)
+
+    def __init__(self, member, *args, **kwargs):
+        self.member = member
+        super(ExpenseShareCreateForm, self).__init__(*args, **kwargs)
+
+
+class BaseExpenseShareCreateFormSet(forms.formsets.BaseFormSet):
+    def __init__(self, total_cost, group, *args, **kwargs):
+        self.total_cost = total_cost
+        self.group = group
+        self.members = group.members.all()
+        super(BaseExpenseShareCreateFormSet, self).__init__(*args, **kwargs)
+        self.input_type_form = ExpenseShareInputTypeForm(*args, **kwargs)
+
+    def initial_form_count(self):
+        return len(self.members)
+
+    def _construct_form(self, i, **kwargs):
+        if i < self.initial_form_count():
+            kwargs['member'] = self.members[i]
+        return super(BaseExpenseShareCreateFormSet,
+                     self)._construct_form(i, **kwargs)
+
+    def clean(self):
+        super(BaseExpenseShareCreateFormSet, self).clean()
+        if not self.input_type_form.is_valid():
+            raise forms.ValidationError(self.input_type_form.errors.values())
+        forms_to_delete = self.deleted_forms
+        valid_forms = [form for form in self.forms
+                       if form.is_valid() and form not in forms_to_delete]
+
+        input_type = self.input_type_form.cleaned_data['input_type']
+        cleaned_total = sum([form.cleaned_data['percent_or_amount']
+                             for form in valid_forms])
+        if input_type == 'percent':
+            if cleaned_total != 100:
+                raise forms.ValidationError("Percentages must add up to "
+                                            "100.00%.")
+        else:
+            if cleaned_total != self.total_cost:
+                raise forms.ValidationError("Share amounts must add up to "
+                                            "total cost.")
+
+
+ExpenseShareCreateFormset = forms.formsets.formset_factory(
+    form=ExpenseShareCreateForm,
+    formset=BaseExpenseShareCreateFormSet,
+    extra=0)
