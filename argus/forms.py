@@ -17,7 +17,7 @@ class GroupForm(forms.ModelForm):
 
     class Meta:
         model = Group
-        exclude = ('password', 'confirmed_email',)
+        exclude = ('password', 'confirmed_email', 'created',)
 
     def __init__(self, request, *args, **kwargs):
         self.request = request
