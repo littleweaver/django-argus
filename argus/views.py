@@ -114,14 +114,16 @@ class GroupPasswordResetConfirmView(FormView):
         kwargs['user'] = self.group
         return kwargs
 
-    def dispatch(self, *args, **kwargs):
-        self.group = Group.objects.get(slug=kwargs['slug'])
-        if not self.generator.check_token(self.group, kwargs['token']):
-            raise Http404("Token invalid or expired.")
-        return super(FormView, self).dispatch(*args, **kwargs)
+    def dispatch(self, request, *args, **kwargs):
+        if request.method.lower() in self.http_method_names:
+            self.group = Group.objects.get(slug=kwargs['slug'])
+            if not self.generator.check_token(self.group, kwargs['token']):
+                raise Http404("Token invalid or expired.")
+        return super(FormView, self).dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
-        context = super(GroupPasswordResetConfirmView, self).get_context_data(**kwargs)
+        context = super(GroupPasswordResetConfirmView, self
+                        ).get_context_data(**kwargs)
         context['group'] = self.group
         return context
 
@@ -262,19 +264,32 @@ class GroupChangePasswordView(UpdateView):
 class GroupRelatedCreateView(CreateView):
     form_class = GroupRelatedForm
 
+    def dispatch(self, request, *args, **kwargs):
+        if request.method.lower() in self.http_method_names:
+            try:
+                self.group = Group.objects.get(slug=kwargs['group_slug'])
+            except Group.DoesNotExist:
+                raise Http404
+            if _group_auth_needed(request, self.group):
+                return _group_auth_redirect(self.group)
+        return super(GroupRelatedCreateView, self).dispatch(request,
+                                                            *args,
+                                                            **kwargs)
+
     def get_form_class(self):
         return modelform_factory(self.model, self.form_class)
 
     def get_form_kwargs(self):
         kwargs = super(GroupRelatedCreateView, self).get_form_kwargs()
         try:
-            kwargs['group'] = Group.objects.get(slug=self.kwargs['group_slug'])
+            kwargs['group'] = self.group
         except Group.DoesNotExist:
             raise Http404
         return kwargs
 
     def get_context_data(self, **kwargs):
-        context = super(GroupRelatedCreateView, self).get_context_data(**kwargs)
+        context = super(GroupRelatedCreateView, self
+                        ).get_context_data(**kwargs)
         context['group'] = context['form'].group
         return context
 
@@ -324,7 +339,8 @@ class RecipientDetailView(DetailView):
     def get_context_data(self, **kwargs):
         context = super(RecipientDetailView, self).get_context_data(**kwargs)
         expenses = self.object.expenses.all()
-        context['total_expense'] = expenses.aggregate(models.Sum('cost'))['cost__sum']
+        context['total_expense'] = expenses.aggregate(models.Sum('cost')
+                                                      )['cost__sum']
         expenses = expenses.order_by('-paid_at')
         context['recent_expenses'] = expenses
         return context
@@ -355,19 +371,27 @@ class ExpenseCreateView(SessionWizardView):
     }
     template_name = 'argus/expense_create.html'
 
+    def dispatch(self, request, *args, **kwargs):
+        if request.method.lower() in self.http_method_names:
+            try:
+                self.group = Group.objects.get(slug=kwargs['group_slug'])
+            except Group.DoesNotExist:
+                raise Http404
+            if _group_auth_needed(request, self.group):
+                return _group_auth_redirect(self.group)
+        return super(ExpenseCreateView, self).dispatch(request, *args,
+                                                       **kwargs)
+
     def get_form_kwargs(self, step):
         kwargs = super(ExpenseCreateView, self).get_form_kwargs(step)
-        try:
-            self.group = Group.objects.get(slug=self.kwargs['group_slug'])
-        except Group.DoesNotExist:
-            raise Http404
         if step == '3':
             kwargs['total_cost'] = self.get_cleaned_data_for_step('0')['cost']
         kwargs['group'] = self.group
         return kwargs
 
     def get_context_data(self, form, **kwargs):
-        context = super(ExpenseCreateView, self).get_context_data(form=form, **kwargs)
+        context = super(ExpenseCreateView, self).get_context_data(form=form,
+                                                                  **kwargs)
         context['group'] = self.group
         return context
 
