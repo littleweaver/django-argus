@@ -1,11 +1,15 @@
-<h1>Log in to {{ group.name|default:group.slug }}</h1>
+{% extends "argus/__base.html" %}
 
-<form action="{{ request.path }}" method="post">
-	{% csrf_token %}
-	<table>
-	{{ form.as_table }}
-	</table>
-	<button type="submit">Login</button>
-</form>
+{% block content %}
+	<h1>Log in to {{ group.name|default:group.slug }}</h1>
 
-{% if group.confirmed_email %}<a href="{% url 'argus_group_password_reset' slug=group.slug %}">Send password reset email</a>{% endif %}
+	<form action="{{ request.path }}" method="post">
+		{% csrf_token %}
+		<table>
+		{{ form.as_table }}
+		</table>
+		<button type="submit">Login</button>
+	</form>
+
+	{% if group.confirmed_email %}<a href="{% url 'argus_group_password_reset' slug=group.slug %}">Send password reset email</a>{% endif %}
+{% endblock %}
