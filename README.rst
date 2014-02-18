@@ -14,4 +14,4 @@ Get it running
 5. ``cd django-argus/src/django-argus/test_project``
 6. ``python manage.py syncdb``
 7. ``python manage.py runserver``
-8. Navigate to ``http://127.0.0.1/`` in your favorite web browser!
+8. Navigate to ``http://127.0.0.1:8000/`` in your favorite web browser!
