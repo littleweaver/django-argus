@@ -13,6 +13,7 @@ from django.db.models import Q
 from django.forms.models import modelform_factory
 from django.http import Http404, HttpResponseRedirect
 from django.template import loader
+from django.utils.crypto import get_random_string
 from django.views.generic import (DetailView, ListView, RedirectView,
                                   UpdateView, FormView, CreateView)
 from django.views.generic.edit import BaseUpdateView
@@ -21,7 +22,8 @@ from argus.forms import (GroupForm, GroupAuthenticationForm,
                          GroupChangePasswordForm, GroupRelatedForm,
                          ExpenseBasicCreateForm, ExpenseRecipientCreateForm,
                          ExpensePaymentCreateForm, ExpenseShareCreateFormset)
-from argus.models import Member, Group, Share, Recipient, Expense, Category
+from argus.models import (Member, Group, Share, Recipient, Expense, Category,
+                          URL_SAFE_CHARS)
 from argus.tokens import token_generators
 from argus.utils import login, logout
 
@@ -201,8 +203,7 @@ class GroupCreateView(RedirectView):
 
     def get_redirect_url(self, *args, **kwargs):
         while True:
-            slug = hashlib.sha1(datetime.datetime.now().isoformat()
-                                ).hexdigest()[:6]
+            slug = get_random_string(length=6, allowed_chars=URL_SAFE_CHARS)
             if not Group.objects.filter(slug=slug).exists():
                 group = Group.objects.create(slug=slug)
                 break

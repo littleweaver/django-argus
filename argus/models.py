@@ -5,16 +5,24 @@ import random
 
 from django.contrib.auth.hashers import make_password, check_password
 from django.core.urlresolvers import reverse
+from django.core.validators import RegexValidator
 from django.db import models
 from django.utils.encoding import smart_text
 from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
 
 
+URL_SAFE_CHARS = ('abcdefghijklmnopqrstuvwxyz'
+                  'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+                  '0123456789-_~.')
+
+
 class Group(models.Model):
     SESSION_KEY = '_argus_group_id'
+    SLUG_REGEX = "[\w_~\.-]+"
 
-    slug = models.SlugField(max_length=50, unique=True)
+    slug = models.CharField(max_length=50, unique=True,
+                            validators=[RegexValidator(SLUG_REGEX)])
     name = models.CharField(max_length=64, blank=True)
     email = models.EmailField(blank=True)
     confirmed_email = models.EmailField(blank=True)
