@@ -1,8 +1,7 @@
 # Configuration file for Compass
 
 require 'bootstrap-sass'
-project_path = "argus/static/argus"
-css_dir = "css"
+css_dir = "static/argus/css"
 sass_dir = "sass"
 images_dir = "images"
 javascripts_dir = "js"
