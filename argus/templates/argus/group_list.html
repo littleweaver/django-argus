@@ -1,15 +1,15 @@
 {% extends "argus/__base.html" %}
 
 {% block content %}
-    {% if groups %}
-      <ul>
-        {% for group in groups %}
-          <li><a href="{{ group.get_absolute_url }}">{{ group.name|default:group.slug }}</a></li>
-        {% endfor %}
-      </ul>
-    {% else %}
-      <p>No groups have been created yet.</p>
-    {% endif %}
+		{% if groups %}
+			<ul>
+				{% for group in groups %}
+					<li><a href="{{ group.get_absolute_url }}">{{ group.name|default:group.slug }}</a></li>
+				{% endfor %}
+			</ul>
+		{% else %}
+			<p>No groups have been created yet.</p>
+		{% endif %}
 
-    <a href="{% url 'argus_group_create' %}">Create a group</a>
+		<a href="{% url 'argus_group_create' %}">Create a group</a>
 {% endblock %}

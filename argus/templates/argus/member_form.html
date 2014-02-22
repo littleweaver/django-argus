@@ -6,10 +6,10 @@
 	<h2>{% if member.pk %}Edit member: {{ member.name }}{% else %}Add a member{% endif %}</h2>
 
 	<form action="{{ request.path }}" method="post">
-	    {% csrf_token %}
-	    <table>
-	    {{ form.as_table }}
-	    </table>
-	    <button type="submit">{% if member.pk %}Save changes{% else %}Add member{% endif %}</button>
+		{% csrf_token %}
+		<table>
+		{{ form.as_table }}
+		</table>
+		<button type="submit">{% if member.pk %}Save changes{% else %}Add member{% endif %}</button>
 	</form>
 {% endblock %}
