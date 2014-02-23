@@ -1,5 +1,3 @@
-import datetime
-import hashlib
 import random
 
 from django.conf import settings
