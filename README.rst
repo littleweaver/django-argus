@@ -48,7 +48,7 @@ Get it running
 
 .. code:: bash
 
-    cd django-argus/test-project
+    cd django-argus/test_project
     python manage.py syncdb    # Create/sync the database.
     python manage.py runserver # Run the server! 
 
