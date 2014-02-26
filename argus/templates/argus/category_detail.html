@@ -24,11 +24,9 @@
 			<tr>
 				<td>{{ expense.paid_at|date:"Y-m-d H:i:s" }}</td>
 				<td><a href="{{ expense.member.get_absolute_url }}">{{ expense.member.name }}</a></td>
+				<td><a href="{{ expense.recipient.get_absolute_url }}">{{ expense.recipient.name }}</a></td>
 				<td>{{ expense.memo }}</td>
 				<td>{{ expense.cost }}</td>
-				{% if category.group.use_categories %}
-					<td>{{ expense.category }}</td>
-				{% endif %}
 			</tr>
 		{% endfor %}
 	</tbody>

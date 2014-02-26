@@ -51,4 +51,43 @@
 			{% endif %}
 		{% endwith %}
 	{% endif %}
+
+	<table>
+		<thead>
+			<tr>
+				<th>Paid at</th>
+				<th>Paid by</th>
+				<th>Paid to</th>
+				<th>Memo</th>
+				<th>Cost ({{ group.currency }})</th>
+				{% if group.use_categories %}
+					<th>Category</th>
+				{% endif %}
+				{% for member in group.members.all %}
+					<th>{{ member.name }} ({{ member.balance }})</th>
+				{% endfor %}
+			</tr>
+		</thead>
+		<tbody>
+			{% for expense in recent_expenses|slice:":10" %}
+				<tr>
+					<td>{{ expense.paid_at|date:"Y-m-d H:i:s" }}</td>
+					<td><a href="{{ expense.member.get_absolute_url }}">{{ expense.member.name }}</a></td>
+					<td><a href="{{ expense.recipient.get_absolute_url }}">{{ expense.recipient.name }}</a></td>
+					<td>{{ expense.memo }}</td>
+					<td>{{ expense.cost }}</td>
+					{% if group.use_categories %}
+						<td><a href="{{ expense.category.get_absolute_url }}">{{ expense.category.name }}</a></td>
+					{% endif %}
+					{% for member in group.members.all %}
+						{% for share in expense.shares.all %}
+							{% if share.member_id == member.pk %}
+								<td>{{ share.amount }} ({{ share.percentage }})</td>
+							{% endif %}
+						{% endfor %}
+					{% endfor %}
+				</tr>
+			{% endfor %}
+		</tbody>
+	</table>
 {% endblock %}

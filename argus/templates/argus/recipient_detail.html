@@ -29,7 +29,7 @@
 					<td>{{ expense.memo }}</td>
 					<td>{{ expense.cost }}</td>
 					{% if recipient.group.use_categories %}
-						<td>{{ expense.category }}</td>
+						<td><a href="{{ expense.category.get_absolute_url }}">{{ expense.category.name }}</a></td>
 					{% endif %}
 				</tr>
 			{% endfor %}

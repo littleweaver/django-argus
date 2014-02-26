@@ -230,6 +230,14 @@ class GroupDetailView(DetailView):
         context = self.get_context_data(object=self.object)
         return self.render_to_response(context)
 
+    def get_context_data(self, **kwargs):
+        context = super(GroupDetailView, self).get_context_data(**kwargs)
+        expenses = Expense.objects.filter(member__group=self.object
+                                          ).order_by('-paid_at'
+                                          ).prefetch_related('shares')
+        context['recent_expenses'] = expenses
+        return context
+
 
 class GroupUpdateView(UpdateView):
     model = Group
