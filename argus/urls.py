@@ -7,7 +7,8 @@ from argus.views import (MemberDetailView, GroupListView, GroupDetailView,
                          GroupChangePasswordView, GroupPasswordResetTokenView,
                          GroupPasswordResetConfirmView, GroupEmailConfirmView,
                          GroupLogoutView, GroupRelatedCreateView,
-                         RecipientDetailView, ExpenseCreateView,
+                         RecipientDetailView, PaymentCreateView,
+                         EvenSplitCreateView, ManualSplitCreateView,
                          CategoryDetailView, GroupRelatedUpdateView)
 
 
@@ -91,7 +92,13 @@ urlpatterns = patterns('',
                                        model=Category),
         name='argus_category_update'),
 
-    url(r'^(?P<group_slug>{})/expense/$'.format(Group.SLUG_REGEX),
-        ExpenseCreateView.as_view(),
-        name='argus_expense_create'),
+    url(r'^(?P<group_slug>{})/payment/$'.format(Group.SLUG_REGEX),
+        PaymentCreateView.as_view(),
+        name='argus_payment_create'),
+    url(r'^(?P<group_slug>{})/even/$'.format(Group.SLUG_REGEX),
+        EvenSplitCreateView.as_view(),
+        name='argus_even_create'),
+    url(r'^(?P<group_slug>{})/manual/$'.format(Group.SLUG_REGEX),
+        ManualSplitCreateView.as_view(),
+        name='argus_manual_create'),
 )

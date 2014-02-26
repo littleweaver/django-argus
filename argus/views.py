@@ -18,8 +18,8 @@ from django.views.generic.edit import BaseUpdateView
 
 from argus.forms import (GroupForm, GroupAuthenticationForm,
                          GroupChangePasswordForm, GroupRelatedForm,
-                         ExpenseBasicCreateForm, ExpenseRecipientCreateForm,
-                         ExpensePaymentCreateForm, ExpenseShareCreateFormset)
+                         PaymentForm, EvenSplitForm,
+                         ExpenseShareFormSet)
 from argus.models import (Member, Group, Share, Recipient, Expense, Category,
                           URL_SAFE_CHARS)
 from argus.tokens import token_generators
@@ -366,22 +366,7 @@ class CategoryDetailView(GroupRelatedDetailView):
         return self.render_to_response(context)
 
 
-def use_if(*args):
-    # Pass in the value that means it should be used.
-    def should_use(wizard):
-        cleaned_data = wizard.get_cleaned_data_for_step('0') or {}
-        return cleaned_data.get('split') in args
-    return should_use
-
-
-class ExpenseCreateView(SessionWizardView):
-    form_list = [ExpenseBasicCreateForm, ExpenseRecipientCreateForm,
-                 ExpensePaymentCreateForm, ExpenseShareCreateFormset]
-    condition_dict = {
-        '1': use_if(Expense.EVEN_SPLIT, Expense.MANUAL_SPLIT),
-        '2': use_if(Expense.PAYMENT_SPLIT),
-        '3': use_if(Expense.MANUAL_SPLIT)
-    }
+class BaseExpenseCreateView(CreateView):
     template_name = 'argus/expense_create.html'
 
     def dispatch(self, request, *args, **kwargs):
@@ -392,70 +377,35 @@ class ExpenseCreateView(SessionWizardView):
                 raise Http404
             if _group_auth_needed(request, self.group):
                 return _group_auth_redirect(self.group)
-        return super(ExpenseCreateView, self).dispatch(request, *args,
-                                                       **kwargs)
+        return super(BaseExpenseCreateView, self).dispatch(request, *args,
+                                                           **kwargs)
 
-    def get_form_kwargs(self, step):
-        kwargs = super(ExpenseCreateView, self).get_form_kwargs(step)
-        if step == '3':
-            kwargs['total_cost'] = self.get_cleaned_data_for_step('0')['cost']
+    def get_form_kwargs(self):
+        kwargs = super(BaseExpenseCreateView, self).get_form_kwargs()
         kwargs['group'] = self.group
         return kwargs
 
-    def get_context_data(self, form, **kwargs):
-        context = super(ExpenseCreateView, self).get_context_data(form=form,
-                                                                  **kwargs)
+    def get_context_data(self, **kwargs):
+        context = super(BaseExpenseCreateView, self).get_context_data(**kwargs)
         context['group'] = self.group
         return context
 
-    def done(self, form_list, **kwargs):
-        expense_data = form_list[0].cleaned_data
-        if expense_data['split'] != Expense.PAYMENT_SPLIT:
-            recipient_data = form_list[1].cleaned_data
-            if 'recipient' in recipient_data:
-                expense_data['recipient'] = recipient_data['recipient']
+    def get_success_url(self):
+        return self.group.get_absolute_url()
 
-        expense = Expense.objects.create(**expense_data)
 
-        if expense_data['split'] == Expense.EVEN_SPLIT:
-            members = expense_data['member'].group.members.all()
-            Share.objects.create_even(expense, members)
-        elif expense_data['split'] == Expense.PAYMENT_SPLIT:
-            Share.objects.create(expense=expense,
-                                 member=form_list[1].cleaned_data['member'],
-                                 portion=1,
-                                 portion_is_manual=False,
-                                 amount=expense.cost,
-                                 amount_is_manual=False)
-        else:
-            formset = form_list[2]
-            input_type = formset.input_type_form.cleaned_data['input_type']
-            is_portion = True if input_type == 'percent' else False
-            shares = [
-                Share(expense=expense,
-                      member=form.member,
-                      portion_is_manual=is_portion,
-                      amount_is_manual=not is_portion,
-                      portion=(form.cleaned_data['percent_or_amount'] / 100
-                               if is_portion else
-                               form.cleaned_data['percent_or_amount'] /
-                               expense.cost),
-                      amount=(form.cleaned_data['percent_or_amount']
-                              if not is_portion else expense.cost *
-                              (form.cleaned_data['percent_or_amount'] / 100))
-                      )
-                for form in formset.forms
-            ]
-            if is_portion:
-                share_total = sum([share.amount for share in shares])
-                if share_total != expense.cost:
-                    share = random.choice(shares)
-                    share.amount += expense.cost - share_total
-            else:
-                share_total = sum([share.portion for share in shares])
-                if share_total != 1:
-                    share = random.choice(shares)
-                    share.portion += 1 - share_total
-            Share.objects.bulk_create(shares)
+class PaymentCreateView(BaseExpenseCreateView):
+    form_class = PaymentForm
 
-        return HttpResponseRedirect(self.group.get_absolute_url())
+
+class EvenSplitCreateView(BaseExpenseCreateView):
+    form_class = EvenSplitForm
+
+
+class ManualSplitCreateView(BaseExpenseCreateView):
+    form_class = ExpenseShareFormSet
+
+    def get_form_kwargs(self):
+        kwargs = super(ManualSplitCreateView, self).get_form_kwargs()
+        del kwargs['instance']
+        return kwargs

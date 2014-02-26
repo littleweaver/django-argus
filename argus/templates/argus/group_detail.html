@@ -7,7 +7,9 @@
 
 	{% if group.password %}<p><a href="{% url 'argus_group_logout' %}">Logout</a></p>{% endif %}
 
-	<p><a href="{% url 'argus_expense_create' group_slug=group.slug %}">Create expense</a></p>
+	<p><a href="{% url 'argus_payment_create' group_slug=group.slug %}">Record a payment to another member</a></p>
+	<p><a href="{% url 'argus_even_create' group_slug=group.slug %}">Record an evenly-split expense</a></p>
+	<p><a href="{% url 'argus_manual_create' group_slug=group.slug %}">Record an unenvenly-split expense</a></p>
 
 	<h2>Members <small><a href="{% url 'argus_member_create' group_slug=group.slug %}">Add member</a></small></h2>
 	{% with members=group.members.all %}

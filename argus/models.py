@@ -181,9 +181,7 @@ class Expense(models.Model):
 class ShareManager(models.Manager):
     def create_even(self, expense, members):
         shares = [Share(expense=expense,
-                        member=member,
-                        portion_is_manual=False,
-                        amount_is_manual=False)
+                        member=member)
                   for member in members]
         self._set_even(shares, expense.cost)
 
@@ -201,15 +199,36 @@ class ShareManager(models.Manager):
 
         for share in shares:
             share.portion = portion
-            share.portion_is_manual = False
             share.amount = share_amount
-            share.amount_is_manual = False
+        self.auto_tweak(shares, total_cost, portion_is_manual=False,
+                        amount_is_manual=False)
 
-        if (share_amount * len(shares) != total_cost or
-                portion * len(shares) != 1):
-            share = random.choice(shares)
-            share.amount = total_cost - (share_amount * (len(shares) - 1))
-            share.portion = 1 - (portion * (len(shares) - 1))
+    def auto_tweak(self, shares, total_cost, portion_is_manual=True,
+                   amount_is_manual=True):
+        for share in shares:
+            share.portion_is_manual = portion_is_manual
+            share.amount_is_manual = amount_is_manual
+
+        amounts, portions = zip(*[(share.amount, share.portion)
+                                  for share in shares])
+        amount_sum = sum(amounts)
+        portion_sum = sum(portions)
+
+        if portion_is_manual and portion_sum != 1:
+            raise ValueError("Manual portions do not sum to 1.")
+
+        if amount_is_manual and amount_sum != total_cost:
+            raise ValueError("Manual amounts do not sum to cost.")
+
+        share = random.choice(shares)
+
+        if portion_sum != 1:
+            # We already know that portion is auto.
+            share.portion = 1 - (portion_sum - share.portion)
+
+        if amount_sum != total_cost:
+            # We already know that amount is auto.
+            share.amount = total_cost - (amount_sum - share.amount)
 
 
 class Share(models.Model):

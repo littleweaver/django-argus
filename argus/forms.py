@@ -5,7 +5,7 @@ from django.core.mail import send_mail
 from django.template import loader
 from django.utils.translation import ugettext_lazy as _
 
-from argus.models import Group, Expense, Member
+from argus.models import Group, Expense, Member, Recipient, Share
 from argus.tokens import token_generators
 
 
@@ -135,66 +135,112 @@ class GroupRelatedForm(forms.ModelForm):
         self.instance.group = self.group
 
 
-class ExpenseBasicCreateForm(forms.ModelForm):
+class BaseExpenseForm(forms.ModelForm):
     member = forms.ModelChoiceField(Member, widget=forms.RadioSelect)
-    split = Expense._meta.get_field('split'
-                                    ).formfield(widget=forms.RadioSelect)
 
     class Meta:
         model = Expense
-        exclude = ('recipient',)
 
     def __init__(self, group, *args, **kwargs):
-        super(ExpenseBasicCreateForm, self).__init__(*args, **kwargs)
+        super(BaseExpenseForm, self).__init__(*args, **kwargs)
+        # Do this here for DRY.
+        del self.fields['split']
         if not group.use_categories:
             del self.fields['category']
         else:
             self.fields['category'].queryset = group.categories.all()
         self.fields['member'].queryset = group.members.all()
         self.fields['member'].empty_label = None
+        self.group = group
 
 
-# Used for even split or manual split.
-class ExpenseRecipientCreateForm(forms.ModelForm):
+class PaymentForm(BaseExpenseForm):
+    recipient = forms.ModelChoiceField(Member, widget=forms.RadioSelect)
+
     class Meta:
         model = Expense
-        fields = ('recipient',)
+        exclude = ('recipient',)
 
-    def __init__(self, group, *args, **kwargs):
-        super(ExpenseRecipientCreateForm, self).__init__(*args, **kwargs)
-        self.fields['recipient'].queryset = group.recipients.all()
+    def __init__(self, *args, **kwargs):
+        super(PaymentForm, self).__init__(*args, **kwargs)
+        self.fields['recipient'].queryset = self.group.members.all()
+        self.fields['recipient'].empty_label = None
+
+    def clean(self):
+        cleaned_data = super(PaymentForm, self).clean()
+        if cleaned_data['member'] == cleaned_data['recipient']:
+            raise forms.ValidationError("A member cannot pay themselves.")
+
+    def _post_clean(self):
+        super(PaymentForm, self)._post_clean()
+        self.instance.split = Expense.PAYMENT_SPLIT
+
+    def save(self):
+        expense = super(PaymentForm, self).save()
+        Share.objects.create(expense=expense,
+                             member=self.cleaned_data['recipient'],
+                             portion=1,
+                             portion_is_manual=False,
+                             amount=expense.cost,
+                             amount_is_manual=False)
+        return expense
 
 
-class ExpensePaymentCreateForm(forms.Form):
-    member = forms.ModelChoiceField(Member, widget=forms.RadioSelect)
+class RecipientExpenseForm(BaseExpenseForm):
+    recipient = forms.ModelChoiceField(Recipient, widget=forms.RadioSelect)
 
-    def __init__(self, group, *args, **kwargs):
-        super(ExpensePaymentCreateForm, self).__init__(*args, **kwargs)
-        self.fields['member'].queryset = group.members.all()
-        self.fields['member'].empty_label = None
+    def __init__(self, *args, **kwargs):
+        super(RecipientExpenseForm, self).__init__(*args, **kwargs)
+        self.fields['recipient'].queryset = self.group.recipients.all()
+        self.fields['recipient'].empty_label = None
 
 
-class ExpenseShareInputTypeForm(forms.Form):
+class EvenSplitForm(RecipientExpenseForm):
+    among = forms.ModelMultipleChoiceField(Member,
+                                           widget=forms.CheckboxSelectMultiple)
+
+    def __init__(self, *args, **kwargs):
+        super(EvenSplitForm, self).__init__(*args, **kwargs)
+        all_members = self.group.members.all()
+        self.fields['among'].queryset = all_members
+        self.fields['among'].empty_label = None
+        self.initial['among'] = all_members
+
+    def _post_clean(self):
+        super(EvenSplitForm, self)._post_clean()
+        self.instance.split = Expense.EVEN_SPLIT
+
+    def save(self):
+        expense = super(EvenSplitForm, self).save()
+        Share.objects.create_even(expense, self.cleaned_data['among'])
+        return expense
+
+
+class ManualSplitForm(RecipientExpenseForm):
     input_type = forms.ChoiceField(widget=forms.RadioSelect,
                                    choices=(('percent', _('Percent')),
                                             ('amount', _('Amount'))))
 
+    def _post_clean(self):
+        super(ManualSplitForm, self)._post_clean()
+        self.instance.split = Expense.MANUAL_SPLIT
 
-class ExpenseShareCreateForm(forms.Form):
-    percent_or_amount = forms.DecimalField(decimal_places=2, min_value=0)
+
+class ExpenseShareForm(forms.Form):
+    percent_or_amount = forms.DecimalField(decimal_places=2, min_value=0,
+                                           initial=0)
 
     def __init__(self, member, *args, **kwargs):
         self.member = member
-        super(ExpenseShareCreateForm, self).__init__(*args, **kwargs)
+        super(ExpenseShareForm, self).__init__(*args, **kwargs)
 
 
-class BaseExpenseShareCreateFormSet(forms.formsets.BaseFormSet):
-    def __init__(self, total_cost, group, *args, **kwargs):
-        self.total_cost = total_cost
+class BaseExpenseShareFormSet(forms.formsets.BaseFormSet):
+    def __init__(self, group, *args, **kwargs):
         self.group = group
         self.members = group.members.all()
-        super(BaseExpenseShareCreateFormSet, self).__init__(*args, **kwargs)
-        self.input_type_form = ExpenseShareInputTypeForm(*args, **kwargs)
+        super(BaseExpenseShareFormSet, self).__init__(*args, **kwargs)
+        self.expense_form = ManualSplitForm(group, *args, **kwargs)
 
     def initial_form_count(self):
         return len(self.members)
@@ -202,18 +248,19 @@ class BaseExpenseShareCreateFormSet(forms.formsets.BaseFormSet):
     def _construct_form(self, i, **kwargs):
         if i < self.initial_form_count():
             kwargs['member'] = self.members[i]
-        return super(BaseExpenseShareCreateFormSet,
+        return super(BaseExpenseShareFormSet,
                      self)._construct_form(i, **kwargs)
 
     def clean(self):
-        super(BaseExpenseShareCreateFormSet, self).clean()
-        if not self.input_type_form.is_valid():
-            raise forms.ValidationError(self.input_type_form.errors.values())
+        super(BaseExpenseShareFormSet, self).clean()
+        if not self.expense_form.is_valid():
+            self._errors.append(self.expense_form.errors)
+
         forms_to_delete = self.deleted_forms
         valid_forms = [form for form in self.forms
                        if form.is_valid() and form not in forms_to_delete]
 
-        input_type = self.input_type_form.cleaned_data['input_type']
+        input_type = self.expense_form.cleaned_data['input_type']
         cleaned_total = sum([form.cleaned_data['percent_or_amount']
                              for form in valid_forms])
         if input_type == 'percent':
@@ -221,12 +268,35 @@ class BaseExpenseShareCreateFormSet(forms.formsets.BaseFormSet):
                 raise forms.ValidationError("Percentages must add up to "
                                             "100.00%.")
         else:
-            if cleaned_total != self.total_cost:
+            if cleaned_total != self.expense_form.instance.cost:
                 raise forms.ValidationError("Share amounts must add up to "
                                             "total cost.")
 
+    def save(self):
+        expense = self.expense_form.save()
+        input_type = self.expense_form.cleaned_data['input_type']
+        portion_is_manual = input_type == 'percent'
+        amount_is_manual = input_type == 'amount'
+        shares = [
+            Share(expense=expense,
+                  member=form.member,
+                  portion=(form.cleaned_data['percent_or_amount'] / 100
+                           if portion_is_manual else
+                           form.cleaned_data['percent_or_amount'] /
+                           expense.cost),
+                  amount=(form.cleaned_data['percent_or_amount']
+                          if amount_is_manual else expense.cost *
+                          (form.cleaned_data['percent_or_amount'] / 100)))
+            for form in self.forms
+        ]
+        Share.objects.auto_tweak(shares, expense.cost,
+                                 portion_is_manual=portion_is_manual,
+                                 amount_is_manual=amount_is_manual)
+        Share.objects.bulk_create(shares)
+        return expense
 
-ExpenseShareCreateFormset = forms.formsets.formset_factory(
-    form=ExpenseShareCreateForm,
-    formset=BaseExpenseShareCreateFormSet,
+
+ExpenseShareFormSet = forms.formsets.formset_factory(
+    form=ExpenseShareForm,
+    formset=BaseExpenseShareFormSet,
     extra=0)
