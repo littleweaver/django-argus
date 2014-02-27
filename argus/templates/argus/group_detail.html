@@ -1,5 +1,7 @@
 {% extends "argus/__base.html" %}
 
+{% block grouplink %}<a href="{{ group.get_absolute_url }}">{{ group.name|default:group.slug }}</a>{% endblock grouplink %}
+
 {% block content %}
 	<h1><a href="{{ group.get_absolute_url }}">{{ group.name|default:group.slug }}</a></h1>
 
@@ -52,7 +54,7 @@
 		{% endwith %}
 	{% endif %}
 
-	<table>
+	<table class="table">
 		<thead>
 			<tr>
 				<th>Paid at</th>
