@@ -9,50 +9,52 @@
 
 	{% if group.password %}<p><a href="{% url 'argus_group_logout' %}">Logout</a></p>{% endif %}
 
-	<p><a href="{% url 'argus_payment_create' group_slug=group.slug %}">Record a payment to another member</a></p>
-	<p><a href="{% url 'argus_even_create' group_slug=group.slug %}">Record an evenly-split expense</a></p>
-	<p><a href="{% url 'argus_manual_create' group_slug=group.slug %}">Record an unenvenly-split expense</a></p>
 
-	<h2>Members <small><a href="{% url 'argus_member_create' group_slug=group.slug %}">Add member</a></small></h2>
 	{% with members=group.members.all %}
-		{% if members %}
-			<ul>
+		<ul class="nav nav-pills">
+			<li><h4>Members</h4></li>
+			{% if members %}
 				{% for member in members %}
-					<li><a href="{{ member.get_absolute_url }}">{{ member.name }}</a>: {{ member.balance }}</li>
+					<li><a href="{{ member.get_absolute_url }}">{{ member.name }}: {{ member.balance }}</a></li>
 				{% endfor %}
-			</ul>
-		{% else %}
-			<p>No members found.</p>
-		{% endif %}
+			{% endif %}
+			<li><a href="{% url 'argus_member_create' group_slug=group.slug %}"><span class="glyphicon glyphicon-plus"></span></a></li>
+		</ul>
 	{% endwith %}
 
-	<h2>Recipients <small><a href="{% url 'argus_recipient_create' group_slug=group.slug %}">Add recipient</a></small></h2>
 	{% with recipients=group.recipients.all %}
-		{% if recipients %}
-			<ul>
+		<ul class="nav nav-pills">
+			<li><h4>Recipients</h4></li>
+			{% if recipients %}
 				{% for recipient in recipients %}
 					<li><a href="{{ recipient.get_absolute_url }}">{{ recipient.name }}</a></li>
 				{% endfor %}
-			</ul>
-		{% else %}
-			<p>No recipients found.</p>
-		{% endif %}
+			{% endif %}
+			<li><a href="{% url 'argus_recipient_create' group_slug=group.slug %}"><span class="glyphicon glyphicon-plus"></span></a></li>
+		</ul>
 	{% endwith %}
 
 	{% if group.use_categories %}
-		<h2>Categories <small><a href="{% url 'argus_category_create' group_slug=group.slug %}">Add category</a></small></h2>
 		{% with categories=group.categories.all %}
-			{% if categories %}
-				<ul>
+			<ul class="nav nav-pills">
+				<li><h4>Categories</h4></li>
+				{% if categories %}
 					{% for category in categories %}
 						<li><a href="{{ category.get_absolute_url }}">{{ category.name }}</a></li>
 					{% endfor %}
-				</ul>
-			{% else %}
-				<p>No categories found.</p>
-			{% endif %}
+				{% endif %}
+				<li><a href="{% url 'argus_category_create' group_slug=group.slug %}"><span class="glyphicon glyphicon-plus"></span></a></li>
+			</ul>
 		{% endwith %}
 	{% endif %}
+
+
+	<h2>Record a New Expense</h2>
+	<p>
+		<a href="{% url 'argus_payment_create' group_slug=group.slug %}" class="btn btn-primary">Member to Member</a>
+		<a href="{% url 'argus_even_create' group_slug=group.slug %}" class="btn btn-primary">Even Split</a>
+		<a href="{% url 'argus_manual_create' group_slug=group.slug %}" class="btn btn-primary">Uneven Split</a></p>
+
 
 	<table class="table">
 		<thead>
