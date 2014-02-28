@@ -1,5 +1,10 @@
 {% extends "argus/__base.html" %}
 
-{% block navbar-nav %}
-	<li><a href="{{ group.get_absolute_url }}">{{ group.name|default:group.slug }}</a></li>
-{% endblock navbar-nav %}
+{% block navbar-collapse %}
+	<ul class="nav navbar-nav">
+		<li><a href="{{ group.get_absolute_url }}">{{ group.name|default:group.slug }}</a></li>
+	</ul>
+	<ul class="nav navbar-nav navbar-right">
+		<li><a href="{% url 'argus_group_update' slug=group.slug %}"><span class="glyphicon glyphicon-cog"></span></a></li>
+	</ul>
+{% endblock navbar-collapse %}

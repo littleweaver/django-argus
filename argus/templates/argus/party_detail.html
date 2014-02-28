@@ -4,6 +4,16 @@
 
 {% block title %}{{ party.name }} – {{ party.group.name }} – {{block.super }}{% endblock %}
 
+{% block navbar-collapse %}
+  <ul class="nav navbar-nav">
+    <li><a href="{{ party.group.get_absolute_url }}">{{ party.group.name|default:party.group.slug }}</a></li>
+  </ul>
+  <ul class="nav navbar-nav navbar-right">
+    <li><a href="{% url 'argus_group_update' slug=party.group.slug %}"><span class="glyphicon glyphicon-cog"></span></a></li>
+  </ul>
+{% endblock navbar-collapse %}
+
+
 {% block content %}
   <pre>Name: {{ party.name }}</pre>
   <pre>Group: <a href="{{ party.group.get_absolute_url }}">{{ party.group }}</a></pre>

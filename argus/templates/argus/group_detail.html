@@ -3,9 +3,7 @@
 {% block grouplink %}<a href="{{ group.get_absolute_url }}">{{ group.name|default:group.slug }}</a>{% endblock grouplink %}
 
 {% block content %}
-	<h1><a href="{{ group.get_absolute_url }}">{{ group.name|default:group.slug }}</a></h1>
-
-	<p><a href="{% url 'argus_group_update' slug=group.slug %}">Edit group settings</a></p>
+	<h1><a href="{{ group.get_absolute_url }}">{{ group.name|default:group.slug }}</a> <a href="{% url 'argus_group_update' slug=group.slug %}"><span class="glyphicon glyphicon-cog small"></span></a></h1>
 
 	{% if group.password %}<p><a href="{% url 'argus_group_logout' %}">Logout</a></p>{% endif %}
 
