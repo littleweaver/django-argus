@@ -1,5 +1,7 @@
 {% extends "argus/__base.html" %}
 
+{% load argus %}
+
 {% block title %}{{ party.name }} – {{ party.group.name }} – {{block.super }}{% endblock %}
 
 {% block content %}
@@ -8,7 +10,7 @@
   <pre>Balance: {{ balance }} or {{ party.balance }}</pre>
 
   <h1>{{ party.name }}</h1>
-  <h3>Owes ${{ party.balance }}</h3>
+  <h3>{% if party.balance < 0 %}Owed{% else %}Owes{% endif %} ${{ party.balance|abs }}</h3>
   <p><a href="{% url 'argus_party_update' group_slug=party.group.slug pk=party.pk %}">Edit party</a></p>
 
   <table class="table">
