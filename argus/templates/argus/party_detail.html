@@ -1,0 +1,50 @@
+{% extends "argus/__base.html" %}
+
+{% block title %}{{ party.name }} – {{ party.group.name }} – {{block.super }}{% endblock %}
+
+{% block content %}
+  <pre>Name: {{ party.name }}</pre>
+  <pre>Group: <a href="{{ party.group.get_absolute_url }}">{{ party.group }}</a></pre>
+  <pre>Balance: {{ balance }} or {{ party.balance }}</pre>
+
+  <h1>{{ party.name }}</h1>
+  <h3>Owes ${{ party.balance }}</h3>
+  <p><a href="{% url 'argus_party_update' group_slug=party.group.slug pk=party.pk %}">Edit party</a></p>
+
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Paid at</th>
+        <th>Paid by</th>
+        <th>Paid to</th>
+        <th>Memo</th>
+        <th>Total cost ({{ party.group.currency }})</th>
+        {% if party.group.use_categories %}
+          <th>Category</th>
+        {% endif %}
+        <th>Share of cost</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for transaction in recent_transactions|slice:":10" %}
+        <tr>
+          <td>{{ transaction.paid_at|date:"Y-m-d H:i:s" }}</td>
+          <td><a href="{{ transaction.paid_by.get_absolute_url }}">{{ transaction.paid_by.name }}</a></td>
+          <td><a href="{{ transaction.paid_to.get_absolute_url }}">{{ transaction.paid_to.name }}</a></td>
+          <td>{{ transaction.memo }}</td>
+          <td>{{ transaction.amount }}</td>
+          {% if party.group.use_categories %}
+            <td>{{ transaction.category }}</td>
+          {% endif %}
+          <td>
+            {% for share in transaction.shares.all %}
+              {% if share.party == party %}
+                {{ share.amount }} ({{ share.percentage }})
+              {% endif %}
+            {% endfor %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

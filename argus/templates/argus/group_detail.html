@@ -9,28 +9,15 @@
 
 	{% if group.password %}<p><a href="{% url 'argus_group_logout' %}">Logout</a></p>{% endif %}
 
-
-	{% with members=group.members.all %}
+	{% with parties=members %}
 		<ul class="nav nav-pills">
 			<li><h4>Members</h4></li>
-			{% if members %}
-				{% for member in members %}
-					<li><a href="{{ member.get_absolute_url }}">{{ member.name }}: {{ member.balance }}</a></li>
+			{% if parties %}
+				{% for party in parties %}
+					<li><a href="{{ party.get_absolute_url }}">{{ party.name }}: {{ party.balance }}</a></li>
 				{% endfor %}
 			{% endif %}
-			<li><a href="{% url 'argus_member_create' group_slug=group.slug %}"><span class="glyphicon glyphicon-plus"></span></a></li>
-		</ul>
-	{% endwith %}
-
-	{% with recipients=group.recipients.all %}
-		<ul class="nav nav-pills">
-			<li><h4>Recipients</h4></li>
-			{% if recipients %}
-				{% for recipient in recipients %}
-					<li><a href="{{ recipient.get_absolute_url }}">{{ recipient.name }}</a></li>
-				{% endfor %}
-			{% endif %}
-			<li><a href="{% url 'argus_recipient_create' group_slug=group.slug %}"><span class="glyphicon glyphicon-plus"></span></a></li>
+			<li><a href="{% url 'argus_party_create' group_slug=group.slug %}"><span class="glyphicon glyphicon-plus"></span></a></li>
 		</ul>
 	{% endwith %}
 
@@ -63,7 +50,7 @@
 				<th>Paid by</th>
 				<th>Paid to</th>
 				<th>Memo</th>
-				<th>Cost ({{ group.currency }})</th>
+				<th>Amount ({{ group.currency }})</th>
 				{% if group.use_categories %}
 					<th>Category</th>
 				{% endif %}
@@ -71,21 +58,21 @@
 			</tr>
 		</thead>
 		<tbody>
-			{% for expense in recent_expenses|slice:":10" %}
+			{% for transaction in recent_transactions|slice:":10" %}
 				<tr>
-					<td>{{ expense.paid_at|date:"Y-m-d H:i:s" }}</td>
-					<td><a href="{{ expense.member.get_absolute_url }}">{{ expense.member.name }}</a></td>
-					<td><a href="{{ expense.recipient.get_absolute_url }}">{{ expense.recipient.name }}</a></td>
-					<td>{{ expense.memo }}</td>
-					<td>{{ expense.cost }}</td>
+					<td>{{ transaction.paid_at|date:"Y-m-d H:i:s" }}</td>
+					<td><a href="{{ transaction.paid_by.get_absolute_url }}">{{ transaction.paid_by.name }}</a></td>
+					<td><a href="{{ transaction.paid_to.get_absolute_url }}">{{ transaction.paid_to.name }}</a></td>
+					<td>{{ transaction.memo }}</td>
+					<td>{{ transaction.amount }}</td>
 					{% if group.use_categories %}
-						<td><a href="{{ expense.category.get_absolute_url }}">{{ expense.category.name }}</a></td>
+						<td><a href="{{ transaction.category.get_absolute_url }}">{{ transaction.category.name }}</a></td>
 					{% endif %}
 					<td>
-						{% for member in group.members.all %}
-							{% for share in expense.shares.all %}
-								{% if share.member_id == member.pk %}
-									{{ member.name }}
+						{% for party in group.parties.all %}
+							{% for share in transaction.shares.all %}
+								{% if share.party_id == party.pk %}
+									<a href="{{ party.get_absolute_url }}">{{ party.name }}</a>
 								{% endif %}
 							{% endfor %}
 						{% endfor %}

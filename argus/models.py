@@ -54,39 +54,40 @@ class Group(models.Model):
         return check_password(raw_password, self.password, setter)
 
 
-class Member(models.Model):
+class Party(models.Model):
+    SINK = 'sink'
+    MEMBER = 'member'
+
+    TYPE_CHOICES = (
+        (SINK, _('Expense source')),
+        (MEMBER, _('Member')),
+    )
     name = models.CharField(max_length=128)
-    group = models.ForeignKey(Group, related_name='members')
+    group = models.ForeignKey(Group, related_name='parties')
+    party_type = models.CharField(max_length=11, choices=TYPE_CHOICES,
+                                  default=SINK)
 
     def __unicode__(self):
         return smart_text(self.name)
 
     def get_absolute_url(self):
-        return reverse("argus_member_detail",
+        return reverse("argus_party_detail",
                        kwargs={
                            "group_slug": self.group.slug,
-                           "pk": self.pk,
+                           "pk": self.pk
                        })
 
     @property
     def balance(self):
         if not hasattr(self, '_balance'):
-            total_expense = self.expenses.aggregate(models.Sum('cost'))['cost__sum'] or 0
-            total_share = self.shares.aggregate(models.Sum('amount'))['amount__sum'] or 0
-            self._balance = total_share - total_expense
+            paid = -1 * (self.transactions_paid.aggregate(models.Sum('amount'))['amount__sum'] or 0)
+            received = self.transactions_received.aggregate(models.Sum('amount'))['amount__sum'] or 0
+            shares = self.shares.aggregate(models.Sum('amount'))['amount__sum'] or 0
+            self._balance = sum((shares, paid, received))
         return self._balance
 
-
-class Recipient(models.Model):
-    name = models.CharField(max_length=64)
-    group = models.ForeignKey(Group, related_name='recipients')
-
-    def __unicode__(self):
-        return smart_text(self.name)
-
-    def get_absolute_url(self):
-        return reverse('argus_recipient_detail',
-                       kwargs={'group_slug': self.group.slug, 'pk': self.pk})
+    def is_member(self):
+        return self.party_type == Party.MEMBER
 
 
 class Category(models.Model):
@@ -104,92 +105,90 @@ class Category(models.Model):
                        kwargs={'group_slug': self.group.slug, 'pk': self.pk})
 
 
-class ExpenseManager(models.Manager):
-    def create_payment(self, from_member, to_member, amount, **kwargs):
-        if from_member == to_member:
-            raise ValueError(u"A member cannot pay themselves.")
+class TransactionManager(models.Manager):
+    def create_payment(self, paid_by, paid_to, amount, **kwargs):
+        if paid_by == paid_to:
+            raise ValueError(u"A party cannot pay themselves.")
         kwargs.update({
-            'cost': amount,
-            'member': from_member,
-            'split': Expense.PAYMENT_SPLIT,
+            'amount': amount,
+            'paid_by': paid_by,
+            'paid_to': paid_to,
+            'split': Transaction.SIMPLE,
         })
         if 'memo' not in kwargs:
-            kwargs['memo'] = (_("Payment: ") + from_member.name +
-                              " -> " + to_member.name)
-        expense = self.create(**kwargs)
-        Share.objects.create(
-            expense=expense,
-            member=to_member,
-            portion=1,
-            amount=amount
-        )
-        return expense
+            kwargs['memo'] = (_("Payment: ") + paid_by.name +
+                              " -> " + paid_to.name)
+        return self.create(**kwargs)
 
-    def create_even(self, member, cost, memo, **kwargs):
+    def create_even(self, paid_by, paid_to, amount, memo,
+                    members=None, **kwargs):
         kwargs.update({
-            'member': member,
-            'cost': cost,
+            'paid_by': paid_by,
+            'amount': amount,
             'memo': memo,
-            'split': Expense.EVEN_SPLIT,
+            'split': Transaction.EVEN,
         })
 
-        expense = self.create(**kwargs)
+        transaction = self.create(**kwargs)
 
-        Share.objects.create_even(expense, member.group.members.all())
+        if members is None:
+            members = paid_by.group.parties.filter(party_type=Party.MEMBER)
 
-        return expense
+        Share.objects.create_even(transaction, members)
+
+        return transaction
 
 
-class Expense(models.Model):
+class Transaction(models.Model):
     """
-    Represents an expense paid by one member which should be shared
+    Represents an transaction paid by one member which should be shared
     among some or all members.
 
     """
-    # Payment from one member to another.
-    PAYMENT_SPLIT = 'payment'
+    # Payment from one party to another.
+    SIMPLE = 'simple'
     # Even split among all members.
-    EVEN_SPLIT = 'even'
-    # Manual split by expense creator.
-    MANUAL_SPLIT = 'manual'
+    EVEN = 'even'
+    # Manual split by transaction creator.
+    MANUAL = 'manual'
 
     SPLIT_CHOICES = (
-        (PAYMENT_SPLIT, _('Member-to-member payment')),
-        (EVEN_SPLIT, _('Even split')),
-        (MANUAL_SPLIT, _('Manual entry')),
+        (SIMPLE, _('Simple payment')),
+        (EVEN, _('Even split')),
+        (MANUAL, _('Manual entry')),
     )
 
-    member = models.ForeignKey(Member, related_name='expenses')
-    recipient = models.ForeignKey(Recipient, related_name='expenses',
-                                  blank=True, null=True)
+    paid_by = models.ForeignKey(Party, related_name='transactions_paid')
+    paid_to = models.ForeignKey(Party, related_name='transactions_received',
+                                blank=True, null=True)
     memo = models.CharField(max_length=64)
-    cost = models.DecimalField(max_digits=11, decimal_places=2)
+    amount = models.DecimalField(max_digits=11, decimal_places=2)
     paid_at = models.DateTimeField(default=now)
     category = models.ForeignKey(Category, blank=True, null=True,
-                                 related_name='expenses')
+                                 related_name='transactions')
     notes = models.TextField(blank=True)
     split = models.CharField(max_length=7,
                              choices=SPLIT_CHOICES,
-                             default=MANUAL_SPLIT)
+                             default=MANUAL)
 
-    objects = ExpenseManager()
+    objects = TransactionManager()
 
     def __unicode__(self):
         return u"{} ({})".format(smart_text(self.memo), self.cost)
 
 
 class ShareManager(models.Manager):
-    def create_even(self, expense, members):
-        shares = [Share(expense=expense,
-                        member=member)
+    def create_even(self, transaction, members):
+        shares = [Share(transaction=transaction,
+                        party=member)
                   for member in members]
-        self._set_even(shares, expense.cost)
+        self._set_even(shares, transaction.amount)
 
         Share.objects.bulk_create(shares)
 
-    def set_even(self, expense):
-        shares = expense.shares.all()
-        self._set_even(shares, expense.cost)
+    def set_even(self, transaction):
+        shares = transaction.shares.all()
+        self._set_even(shares, transaction.amount)
         for share in self.shares:
             share.save()
 
@@ -233,12 +232,11 @@ class ShareManager(models.Manager):
 
 class Share(models.Model):
     """
-    Represents a share of an expense that a given member is responsible
-    for.
+    Represents a share of an transaction that goes to a given party
 
     """
-    expense = models.ForeignKey(Expense, related_name='shares')
-    member = models.ForeignKey(Member, related_name='shares')
+    transaction = models.ForeignKey(Transaction, related_name='shares')
+    party = models.ForeignKey(Party, related_name='shares')
     # Decimal less than one indicating what part of the total cost
     # this person bears.
     portion = models.DecimalField(max_digits=5, decimal_places=4)

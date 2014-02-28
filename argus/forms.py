@@ -5,7 +5,7 @@ from django.core.mail import send_mail
 from django.template import loader
 from django.utils.translation import ugettext_lazy as _
 
-from argus.models import Group, Expense, Member, Recipient, Share
+from argus.models import Group, Transaction, Party, Share
 from argus.tokens import token_generators
 
 
@@ -135,168 +135,128 @@ class GroupRelatedForm(forms.ModelForm):
         self.instance.group = self.group
 
 
-class BaseExpenseForm(forms.ModelForm):
-    member = forms.ModelChoiceField(Member, widget=forms.RadioSelect)
+class TransactionForm(forms.ModelForm):
 
     class Meta:
-        model = Expense
+        model = Transaction
+        exclude = ('split',)
 
-    def __init__(self, group, *args, **kwargs):
-        super(BaseExpenseForm, self).__init__(*args, **kwargs)
-        # Do this here for DRY.
-        del self.fields['split']
+    def __init__(self, group, split=Transaction.SIMPLE, *args, **kwargs):
+        super(TransactionForm, self).__init__(*args, **kwargs)
+        self.group = group
+        self.split = split
+
         if not group.use_categories:
             del self.fields['category']
         else:
             self.fields['category'].queryset = group.categories.all()
-        self.fields['member'].queryset = group.members.all()
-        self.fields['member'].empty_label = None
-        self.group = group
 
-
-class PaymentForm(BaseExpenseForm):
-    recipient = forms.ModelChoiceField(Member, widget=forms.RadioSelect)
-
-    class Meta:
-        model = Expense
-        exclude = ('recipient',)
-
-    def __init__(self, *args, **kwargs):
-        super(PaymentForm, self).__init__(*args, **kwargs)
-        self.fields['recipient'].queryset = self.group.members.all()
-        self.fields['recipient'].empty_label = None
+        self.members = group.parties.filter(party_type=Party.MEMBER)
+        self.fields['paid_by'].queryset = self.members
+        self.fields['paid_by'].empty_label = None
+        self.fields['paid_to'].queryset = self.group.parties.all()
 
     def clean(self):
-        cleaned_data = super(PaymentForm, self).clean()
-        if cleaned_data['member'] == cleaned_data['recipient']:
-            raise forms.ValidationError("A member cannot pay themselves.")
+        cleaned_data = super(TransactionForm, self).clean()
+        if cleaned_data['paid_by'] == cleaned_data['paid_to']:
+            raise forms.ValidationError("A party cannot pay themselves.")
+        return cleaned_data
 
     def _post_clean(self):
-        super(PaymentForm, self)._post_clean()
-        self.instance.split = Expense.PAYMENT_SPLIT
+        super(TransactionForm, self)._post_clean()
+        self.instance.split = self.split
+
+
+class SimpleSplitForm(TransactionForm):
+    def __init__(self, *args, **kwargs):
+        super(SimpleSplitForm, self).__init__(split=Transaction.SIMPLE,
+                                              *args, **kwargs)
+        self.fields['paid_to'].empty_label = None
 
     def save(self):
-        expense = super(PaymentForm, self).save()
-        Share.objects.create(expense=expense,
-                             member=self.cleaned_data['recipient'],
-                             portion=1,
-                             portion_is_manual=False,
-                             amount=expense.cost,
-                             amount_is_manual=False)
-        return expense
+        instance = super(SimpleSplitForm, self).save()
+        if not instance.paid_to.is_member():
+            Share.objects.create(
+                transaction=instance,
+                party=instance.paid_by,
+                portion=1,
+                amount=instance.amount)
+        return instance
 
 
-class RecipientExpenseForm(BaseExpenseForm):
-    recipient = forms.ModelChoiceField(Recipient, widget=forms.RadioSelect)
-
-    def __init__(self, *args, **kwargs):
-        super(RecipientExpenseForm, self).__init__(*args, **kwargs)
-        self.fields['recipient'].queryset = self.group.recipients.all()
-        self.fields['recipient'].empty_label = None
-
-
-class EvenSplitForm(RecipientExpenseForm):
-    among = forms.ModelMultipleChoiceField(Member,
+class EvenSplitForm(TransactionForm):
+    among = forms.ModelMultipleChoiceField(Party,
                                            widget=forms.CheckboxSelectMultiple)
 
     def __init__(self, *args, **kwargs):
-        super(EvenSplitForm, self).__init__(*args, **kwargs)
-        all_members = self.group.members.all()
-        self.fields['among'].queryset = all_members
+        super(EvenSplitForm, self).__init__(split=Transaction.EVEN,
+                                            *args, **kwargs)
+        self.fields['among'].queryset = self.members
         self.fields['among'].empty_label = None
-        self.initial['among'] = all_members
+        self.initial['among'] = self.members
 
-    def _post_clean(self):
-        super(EvenSplitForm, self)._post_clean()
-        self.instance.split = Expense.EVEN_SPLIT
+    def clean(self):
+        cleaned_data = super(EvenSplitForm, self).clean()
+        if cleaned_data['paid_to'] in cleaned_data['among']:
+            raise forms.ValidationError("A member cannot share in a payment "
+                                        "to themselves.")
+        return cleaned_data
 
     def save(self):
-        expense = super(EvenSplitForm, self).save()
-        Share.objects.create_even(expense, self.cleaned_data['among'])
-        return expense
+        instance = super(EvenSplitForm, self).save()
+        Share.objects.create_even(instance, self.cleaned_data['among'])
+        return instance
 
 
-class ManualSplitForm(RecipientExpenseForm):
+class ManualSplitForm(TransactionForm):
     input_type = forms.ChoiceField(widget=forms.RadioSelect,
                                    choices=(('percent', _('Percent')),
                                             ('amount', _('Amount'))))
 
-    def _post_clean(self):
-        super(ManualSplitForm, self)._post_clean()
-        self.instance.split = Expense.MANUAL_SPLIT
-
-
-class ExpenseShareForm(forms.Form):
-    percent_or_amount = forms.DecimalField(decimal_places=2, min_value=0,
-                                           initial=0)
-
-    def __init__(self, member, *args, **kwargs):
-        self.member = member
-        super(ExpenseShareForm, self).__init__(*args, **kwargs)
-
-
-class BaseExpenseShareFormSet(forms.formsets.BaseFormSet):
-    def __init__(self, group, *args, **kwargs):
-        self.group = group
-        self.members = group.members.all()
-        super(BaseExpenseShareFormSet, self).__init__(*args, **kwargs)
-        self.expense_form = ManualSplitForm(group, *args, **kwargs)
-
-    def initial_form_count(self):
-        return len(self.members)
-
-    def _construct_form(self, i, **kwargs):
-        if i < self.initial_form_count():
-            kwargs['member'] = self.members[i]
-        return super(BaseExpenseShareFormSet,
-                     self)._construct_form(i, **kwargs)
+    def __init__(self, *args, **kwargs):
+        super(ManualSplitForm, self).__init__(split=Transaction.MANUAL,
+                                              *args, **kwargs)
+        for member in self.members:
+            field = forms.DecimalField(decimal_places=2, min_value=0,
+                                       initial=0, label=member.name)
+            field.member = member
+            self.fields['member{}'.format(member.pk)] = field
 
     def clean(self):
-        super(BaseExpenseShareFormSet, self).clean()
-        if not self.expense_form.is_valid():
-            self._errors.append(self.expense_form.errors)
-
-        forms_to_delete = self.deleted_forms
-        valid_forms = [form for form in self.forms
-                       if form.is_valid() and form not in forms_to_delete]
-
-        input_type = self.expense_form.cleaned_data['input_type']
-        cleaned_total = sum([form.cleaned_data['percent_or_amount']
-                             for form in valid_forms])
+        cleaned_data = super(ManualSplitForm, self).clean()
+        input_type = cleaned_data['input_type']
+        amounts = [cleaned_data['member{}'].format(member.pk)
+                   for member in self.members]
+        cleaned_total = sum(amounts)
         if input_type == 'percent':
             if cleaned_total != 100:
                 raise forms.ValidationError("Percentages must add up to "
                                             "100.00%.")
         else:
-            if cleaned_total != self.expense_form.instance.cost:
+            if cleaned_total != cleaned_data.amount:
                 raise forms.ValidationError("Share amounts must add up to "
                                             "total cost.")
+        return cleaned_data
 
     def save(self):
-        expense = self.expense_form.save()
-        input_type = self.expense_form.cleaned_data['input_type']
-        portion_is_manual = input_type == 'percent'
-        amount_is_manual = input_type == 'amount'
+        instance = super(ManualSplitForm, self).save()
+        cd = self.cleaned_data
+        portion_is_manual = cd['input_type'] == 'percent'
+        amount_is_manual = cd['input_type'] == 'amount'
         shares = [
-            Share(expense=expense,
-                  member=form.member,
-                  portion=(form.cleaned_data['percent_or_amount'] / 100
+            Share(transaction=instance,
+                  member=member,
+                  portion=(cd['member{}'.format(member.pk)] / 100
                            if portion_is_manual else
-                           form.cleaned_data['percent_or_amount'] /
-                           expense.cost),
-                  amount=(form.cleaned_data['percent_or_amount']
-                          if amount_is_manual else expense.cost *
-                          (form.cleaned_data['percent_or_amount'] / 100)))
-            for form in self.forms
+                           cd['member{}'.format(member.pk)] /
+                           instance.amount),
+                  amount=(cd['member{}'.format(member.pk)]
+                          if amount_is_manual else instance.amount *
+                          (cd['member{}'.format(member.pk)] / 100)))
+            for member in self.members
         ]
-        Share.objects.auto_tweak(shares, expense.cost,
+        Share.objects.auto_tweak(shares, instance.amount,
                                  portion_is_manual=portion_is_manual,
                                  amount_is_manual=amount_is_manual)
         Share.objects.bulk_create(shares)
-        return expense
-
-
-ExpenseShareFormSet = forms.formsets.formset_factory(
-    form=ExpenseShareForm,
-    formset=BaseExpenseShareFormSet,
-    extra=0)
+        return instance

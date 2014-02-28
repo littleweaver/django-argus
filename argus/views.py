@@ -1,8 +1,5 @@
-import random
-
 from django.conf import settings
 from django.contrib.auth.forms import SetPasswordForm
-from django.contrib.formtools.wizard.views import SessionWizardView
 from django.contrib.sites.shortcuts import get_current_site
 from django.core.mail import send_mail
 from django.core.urlresolvers import reverse
@@ -18,9 +15,9 @@ from django.views.generic.edit import BaseUpdateView
 
 from argus.forms import (GroupForm, GroupAuthenticationForm,
                          GroupChangePasswordForm, GroupRelatedForm,
-                         PaymentForm, EvenSplitForm,
-                         ExpenseShareFormSet)
-from argus.models import (Member, Group, Share, Recipient, Expense, Category,
+                         SimpleSplitForm, EvenSplitForm,
+                         ManualSplitForm)
+from argus.models import (Party, Group, Share, Transaction, Category,
                           URL_SAFE_CHARS)
 from argus.tokens import token_generators
 from argus.utils import login, logout
@@ -221,7 +218,7 @@ class GroupDetailView(DetailView):
 
     def get_queryset(self):
         qs = super(GroupDetailView, self).get_queryset()
-        return qs.prefetch_related('members', 'recipients', 'categories')
+        return qs.prefetch_related('parties', 'categories')
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
@@ -232,10 +229,10 @@ class GroupDetailView(DetailView):
 
     def get_context_data(self, **kwargs):
         context = super(GroupDetailView, self).get_context_data(**kwargs)
-        expenses = Expense.objects.filter(member__group=self.object
-                                          ).order_by('-paid_at'
-                                          ).prefetch_related('shares')
-        context['recent_expenses'] = expenses
+        transactions = Transaction.objects.filter(paid_by__group=self.object
+                                                  ).order_by('-paid_at'
+                                                  ).prefetch_related('shares')
+        context['recent_transactions'] = transactions
         return context
 
 
@@ -316,16 +313,6 @@ class GroupRelatedDetailView(DetailView):
         qs = qs.select_related('group')
         return qs.filter(group__slug=self.kwargs['group_slug'])
 
-    def get_context_data(self, **kwargs):
-        context = super(GroupRelatedDetailView,
-                        self).get_context_data(**kwargs)
-        expenses = self.object.expenses.all()
-        context['total_expense'] = expenses.aggregate(models.Sum('cost')
-                                                      )['cost__sum']
-        expenses = expenses.order_by('-paid_at')
-        context['recent_expenses'] = expenses
-        return context
-
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
         if _group_auth_needed(request, self.object.group):
@@ -334,29 +321,21 @@ class GroupRelatedDetailView(DetailView):
         return self.render_to_response(context)
 
 
-class MemberDetailView(GroupRelatedDetailView):
-    model = Member
-    template_name = 'argus/member_detail.html'
-    context_object_name = 'member'
+class PartyDetailView(GroupRelatedDetailView):
+    model = Party
+    template_name = 'argus/party_detail.html'
+    context_object_name = 'party'
 
     def get_context_data(self, **kwargs):
-        # Skip GroupDetailView context data.
-        context = super(GroupRelatedDetailView,
-                        self).get_context_data(**kwargs)
+        context = super(PartyDetailView, self).get_context_data(**kwargs)
         context['balance'] = self.object.balance
-        shares = Share.objects.filter(Q(member=self.object) |
-                                      (Q(expense__member=self.object) &
-                                       Q(expense__split=Expense.PAYMENT_SPLIT))
-                                      ).order_by('-expense__paid_at')
-        shares = shares.select_related('expense').distinct()
-        context['recent_shares'] = shares
+        transactions = Transaction.objects.filter(Q(shares__party=self.object) |
+                                                  Q(paid_by=self.object) |
+                                                  Q(paid_to=self.object)
+                                                  ).order_by('-paid_at'
+                                                  ).distinct()
+        context['recent_transactions'] = transactions
         return context
-
-
-class RecipientDetailView(GroupRelatedDetailView):
-    model = Recipient
-    template_name = 'argus/recipient_detail.html'
-    context_object_name = 'recipient'
 
 
 class CategoryDetailView(GroupRelatedDetailView):
@@ -373,9 +352,18 @@ class CategoryDetailView(GroupRelatedDetailView):
         context = self.get_context_data(object=self.object)
         return self.render_to_response(context)
 
+    def get_context_data(self, **kwargs):
+        context = super(CategoryDetailView, self).get_context_data(**kwargs)
+        transactions = self.object.transactions.all()
+        context['balance'] = transactions.aggregate(models.Sum('amount')
+                                                    )['amount__sum']
+        transactions = transactions.order_by('-paid_at')
+        context['recent_transactions'] = transactions
+        return context
 
-class BaseExpenseCreateView(CreateView):
-    template_name = 'argus/expense_create.html'
+
+class BaseTransactionCreateView(CreateView):
+    template_name = 'argus/transaction_create.html'
 
     def dispatch(self, request, *args, **kwargs):
         if request.method.lower() in self.http_method_names:
@@ -385,16 +373,16 @@ class BaseExpenseCreateView(CreateView):
                 raise Http404
             if _group_auth_needed(request, self.group):
                 return _group_auth_redirect(self.group)
-        return super(BaseExpenseCreateView, self).dispatch(request, *args,
+        return super(BaseTransactionCreateView, self).dispatch(request, *args,
                                                            **kwargs)
 
     def get_form_kwargs(self):
-        kwargs = super(BaseExpenseCreateView, self).get_form_kwargs()
+        kwargs = super(BaseTransactionCreateView, self).get_form_kwargs()
         kwargs['group'] = self.group
         return kwargs
 
     def get_context_data(self, **kwargs):
-        context = super(BaseExpenseCreateView, self).get_context_data(**kwargs)
+        context = super(BaseTransactionCreateView, self).get_context_data(**kwargs)
         context['group'] = self.group
         return context
 
@@ -402,18 +390,13 @@ class BaseExpenseCreateView(CreateView):
         return self.group.get_absolute_url()
 
 
-class PaymentCreateView(BaseExpenseCreateView):
-    form_class = PaymentForm
+class SimpleSplitCreateView(BaseTransactionCreateView):
+    form_class = SimpleSplitForm
 
 
-class EvenSplitCreateView(BaseExpenseCreateView):
+class EvenSplitCreateView(BaseTransactionCreateView):
     form_class = EvenSplitForm
 
 
-class ManualSplitCreateView(BaseExpenseCreateView):
-    form_class = ExpenseShareFormSet
-
-    def get_form_kwargs(self):
-        kwargs = super(ManualSplitCreateView, self).get_form_kwargs()
-        del kwargs['instance']
-        return kwargs
+class ManualSplitCreateView(BaseTransactionCreateView):
+    form_class = ManualSplitForm
