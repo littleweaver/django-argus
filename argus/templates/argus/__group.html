@@ -1,0 +1,5 @@
+{% extends "argus/__base.html" %}
+
+{% block navbar-nav %}
+	<li><a href="{{ group.get_absolute_url }}">{{ group.name|default:group.slug }}</a></li>
+{% endblock navbar-nav %}
