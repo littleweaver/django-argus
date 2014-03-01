@@ -15,7 +15,7 @@
 {% block content %}
 <pre>Name: {{ category.name }}</pre>
 <pre>Group: <a href="{{ category.group.get_absolute_url }}">{{ category.group }}</a></pre>
-<pre>Total expense: {{ total_expense }}</pre>
+<pre>Total transaction: {{ total_transaction }}</pre>
 
 <p><a href="{% url 'argus_category_update' group_slug=category.group.slug pk=category.pk %}">Edit category</a></p>
 
@@ -30,13 +30,13 @@
 		</tr>
 	</thead>
 	<tbody>
-		{% for expense in recent_expenses|slice:":10" %}
+		{% for transaction in recent_transactions|slice:":10" %}
 			<tr>
-				<td>{{ expense.paid_at|date:"Y-m-d H:i:s" }}</td>
-				<td><a href="{{ expense.member.get_absolute_url }}">{{ expense.member.name }}</a></td>
-				<td><a href="{{ expense.recipient.get_absolute_url }}">{{ expense.recipient.name }}</a></td>
-				<td>{{ expense.memo }}</td>
-				<td>{{ expense.cost }}</td>
+				<td>{{ transaction.paid_at|date:"Y-m-d H:i:s" }}</td>
+				<td><a href="{{ transaction.paid_by.get_absolute_url }}">{{ transaction.paid_by.name }}</a></td>
+				<td><a href="{{ transaction.paid_to.get_absolute_url }}">{{ transaction.paid_to.name }}</a></td>
+				<td>{{ transaction.memo }}</td>
+				<td>{{ transaction.amount }}</td>
 			</tr>
 		{% endfor %}
 	</tbody>
