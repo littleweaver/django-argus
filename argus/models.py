@@ -27,8 +27,9 @@ class Group(models.Model):
     email = models.EmailField(blank=True)
     confirmed_email = models.EmailField(blank=True)
     password = models.CharField(max_length=128, blank=True)
-    use_categories = models.BooleanField(default=False)
     currency = models.CharField(max_length=3, default='USD')
+    default_category = models.OneToOneField('Category', blank=True, null=True,
+                                            related_name='default_for')
 
     created = models.DateTimeField(default=now)
 
@@ -91,6 +92,7 @@ class Party(models.Model):
 
 
 class Category(models.Model):
+    DEFAULT_NAME = _("Uncategorized")
     name = models.CharField(max_length=64)
     group = models.ForeignKey(Group, related_name='categories')
 
@@ -164,8 +166,7 @@ class Transaction(models.Model):
     memo = models.CharField(max_length=64)
     amount = models.DecimalField(max_digits=11, decimal_places=2)
     paid_at = models.DateTimeField(default=now)
-    category = models.ForeignKey(Category, blank=True, null=True,
-                                 related_name='transactions')
+    category = models.ForeignKey(Category, related_name='transactions')
     notes = models.TextField(blank=True)
     split = models.CharField(max_length=7,
                              choices=SPLIT_CHOICES,

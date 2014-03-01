@@ -19,19 +19,17 @@
 		</ul>
 	{% endwith %}
 
-	{% if group.use_categories %}
-		{% with categories=group.categories.all %}
-			<ul class="nav nav-pills">
-				<li><h4>Categories</h4></li>
-				{% if categories %}
-					{% for category in categories %}
-						<li><a href="{{ category.get_absolute_url }}">{{ category.name }}</a></li>
-					{% endfor %}
-				{% endif %}
-				<li><a href="{% url 'argus_category_create' group_slug=group.slug %}"><span class="glyphicon glyphicon-plus"></span></a></li>
-			</ul>
-		{% endwith %}
-	{% endif %}
+	{% with categories=group.categories.all %}
+		<ul class="nav nav-pills">
+			<li><h4>Categories</h4></li>
+			{% if categories %}
+				{% for category in categories %}
+					<li><a href="{{ category.get_absolute_url }}">{{ category.name }}</a></li>
+				{% endfor %}
+			{% endif %}
+			<li><a href="{% url 'argus_category_create' group_slug=group.slug %}"><span class="glyphicon glyphicon-plus"></span></a></li>
+		</ul>
+	{% endwith %}
 
 
 	<h2>Record a New Expense</h2>
@@ -49,9 +47,7 @@
 				<th>Paid to</th>
 				<th>Memo</th>
 				<th>Amount ({{ group.currency }})</th>
-				{% if group.use_categories %}
-					<th>Category</th>
-				{% endif %}
+				<th>Category</th>
 				<th>Sharers</th>
 			</tr>
 		</thead>
@@ -63,9 +59,7 @@
 					<td><a href="{{ transaction.paid_to.get_absolute_url }}">{{ transaction.paid_to.name }}</a></td>
 					<td>{{ transaction.memo }}</td>
 					<td>{{ transaction.amount }}</td>
-					{% if group.use_categories %}
-						<td><a href="{{ transaction.category.get_absolute_url }}">{{ transaction.category.name }}</a></td>
-					{% endif %}
+					<td><a href="{{ transaction.category.get_absolute_url }}">{{ transaction.category.name }}</a></td>
 					<td>
 						{% for party in group.parties.all %}
 							{% for share in transaction.shares.all %}

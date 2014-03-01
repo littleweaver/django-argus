@@ -22,6 +22,9 @@ class GroupForm(forms.ModelForm):
     def __init__(self, request, *args, **kwargs):
         self.request = request
         super(GroupForm, self).__init__(*args, **kwargs)
+        self.fields['default_category'].queryset = self.instance.categories.all()
+        self.fields['default_category'].empty_label = None
+        self.fields['default_category'].required = True
 
     def save(self, *args, **kwargs):
         instance = super(GroupForm, self).save(*args, **kwargs)
@@ -136,7 +139,6 @@ class GroupRelatedForm(forms.ModelForm):
 
 
 class TransactionForm(forms.ModelForm):
-
     class Meta:
         model = Transaction
         exclude = ('split',)
@@ -146,10 +148,8 @@ class TransactionForm(forms.ModelForm):
         self.group = group
         self.split = split
 
-        if not group.use_categories:
-            del self.fields['category']
-        else:
-            self.fields['category'].queryset = group.categories.all()
+        self.fields['category'].queryset = group.categories.all()
+        self.fields['category'].initial = group.default_category_id
 
         self.members = group.parties.filter(party_type=Party.MEMBER)
         self.fields['paid_by'].queryset = self.members

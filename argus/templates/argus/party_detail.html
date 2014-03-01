@@ -31,9 +31,7 @@
         <th>Paid to</th>
         <th>Memo</th>
         <th>Total cost ({{ party.group.currency }})</th>
-        {% if party.group.use_categories %}
-          <th>Category</th>
-        {% endif %}
+        <th>Category</th>
         <th>Share of cost</th>
       </tr>
     </thead>
@@ -45,9 +43,7 @@
           <td><a href="{{ transaction.paid_to.get_absolute_url }}">{{ transaction.paid_to.name }}</a></td>
           <td>{{ transaction.memo }}</td>
           <td>{{ transaction.amount }}</td>
-          {% if party.group.use_categories %}
-            <td>{{ transaction.category }}</td>
-          {% endif %}
+          <td><a href="{{ transaction.category.get_absolute_url }}">{{ transaction.category }}</a></td>
           <td>
             {% for share in transaction.shares.all %}
               {% if share.party == party %}

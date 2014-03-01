@@ -201,6 +201,10 @@ class GroupCreateView(RedirectView):
             slug = get_random_string(length=6, allowed_chars=URL_SAFE_CHARS)
             if not Group.objects.filter(slug=slug).exists():
                 group = Group.objects.create(slug=slug)
+                category = Category.objects.create(name=Category.DEFAULT_NAME,
+                                                   group=group)
+                group.default_category = category
+                group.save()
                 break
         return group.get_absolute_url()
 
@@ -274,8 +278,6 @@ class GroupRelatedFormMixin(object):
                 self.group = Group.objects.get(slug=kwargs['group_slug'])
             except Group.DoesNotExist:
                 raise Http404("Group does not exist.")
-            if self.model is Category and not self.group.use_categories:
-                raise Http404("use_categories is False for this group.")
             if _group_auth_needed(request, self.group):
                 return _group_auth_redirect(self.group)
         return super(GroupRelatedFormMixin, self).dispatch(request,
@@ -345,8 +347,6 @@ class CategoryDetailView(GroupRelatedDetailView):
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
-        if not self.object.group.use_categories:
-            raise Http404("use_categories is False for this group.")
         if _group_auth_needed(request, self.object.group):
             return _group_auth_redirect(self.object.group)
         context = self.get_context_data(object=self.object)
