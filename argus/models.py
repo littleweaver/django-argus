@@ -55,6 +55,16 @@ class Group(models.Model):
         return check_password(raw_password, self.password, setter)
 
 
+class PartyManager(models.Manager):
+    use_for_related_fields = True
+
+    def members(self):
+        return self.filter(party_type=Party.MEMBER)
+
+    def sinks(self):
+        return self.filter(party_type=Party.SINK)
+
+
 class Party(models.Model):
     SINK = 'sink'
     MEMBER = 'member'
@@ -67,6 +77,8 @@ class Party(models.Model):
     group = models.ForeignKey(Group, related_name='parties')
     party_type = models.CharField(max_length=11, choices=TYPE_CHOICES,
                                   default=SINK)
+
+    objects = PartyManager()
 
     def __unicode__(self):
         return smart_text(self.name)
