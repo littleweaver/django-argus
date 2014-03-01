@@ -7,17 +7,15 @@
 
 	{% if group.password %}<p><a href="{% url 'argus_group_logout' %}">Logout</a></p>{% endif %}
 
-	{% with parties=members %}
-		<ul class="nav nav-pills">
-			<li><h4>Members</h4></li>
-			{% if parties %}
-				{% for party in parties %}
-					<li><a href="{{ party.get_absolute_url }}">{{ party.name }}: {{ party.balance }}</a></li>
-				{% endfor %}
-			{% endif %}
-			<li><a href="{% url 'argus_party_create' group_slug=group.slug %}"><span class="glyphicon glyphicon-plus"></span></a></li>
-		</ul>
-	{% endwith %}
+	<ul class="nav nav-pills">
+		<li><h4>Members</h4></li>
+		{% if members %}
+			{% for member in members %}
+				<li><a href="{{ member.get_absolute_url }}">{{ member.name }}: {{ member.balance }}</a></li>
+			{% endfor %}
+		{% endif %}
+		<li><a href="{% url 'argus_party_create' group_slug=group.slug %}"><span class="glyphicon glyphicon-plus"></span></a></li>
+	</ul>
 
 	{% with categories=group.categories.all %}
 		<ul class="nav nav-pills">

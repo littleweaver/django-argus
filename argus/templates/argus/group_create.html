@@ -14,5 +14,14 @@
 		<p>No groups have been created yet.</p>
 	{% endif %}
 
-	<a href="{% url 'argus_group_create' %}" class="btn btn-primary">Create a group!</a>
+	<form action="{% url 'argus_group_create' %}" method="post">
+		{% csrf_token %}
+		<table>
+			{% if form.non_form_errors %}
+				{{ form.non_form_errors }}
+			{% endif %}
+			{{ form.as_table }}
+		</table>
+		<button class="btn btn-primary">Create a group!</button>
+	</form>
 {% endblock %}

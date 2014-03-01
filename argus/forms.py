@@ -3,10 +3,47 @@ from django.conf import settings
 from django.contrib.sites.shortcuts import get_current_site
 from django.core.mail import send_mail
 from django.template import loader
+from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext_lazy as _
 
-from argus.models import Group, Transaction, Party, Share
+from argus.models import (Group, Transaction, Party, Share, Category,
+                          URL_SAFE_CHARS)
 from argus.tokens import token_generators
+
+
+class BaseGroupCreateFormSet(forms.models.BaseModelFormSet):
+    def clean(self):
+        super(BaseGroupCreateFormSet, self).clean()
+        filled = sum([1 if form.cleaned_data else 0
+                      for form in self.forms])
+        if filled < 2:
+            raise forms.ValidationError("Please enter the name of at least "
+                                        "two members to get started.")
+
+    def save(self):
+        while True:
+            slug = get_random_string(length=6, allowed_chars=URL_SAFE_CHARS)
+            if not Group.objects.filter(slug=slug).exists():
+                group = Group.objects.create(slug=slug)
+                category = Category.objects.create(name=Category.DEFAULT_NAME,
+                                                   group=group)
+                group.default_category = category
+                group.save()
+                break
+        for form in self.forms:
+            form.instance.group = group
+            form.instance.party_type = Party.MEMBER
+            if form.instance.name:
+                form.save()
+        return group
+    save.alters_data = True
+
+
+GroupCreateFormSet = forms.models.modelformset_factory(
+    Party,
+    formset=BaseGroupCreateFormSet,
+    extra=3,
+    fields=('name',))
 
 
 class GroupForm(forms.ModelForm):

@@ -8,7 +8,6 @@ from django.db.models import Q
 from django.forms.models import modelform_factory
 from django.http import Http404, HttpResponseRedirect
 from django.template import loader
-from django.utils.crypto import get_random_string
 from django.views.generic import (DetailView, ListView, RedirectView,
                                   UpdateView, FormView, CreateView)
 from django.views.generic.edit import BaseUpdateView
@@ -16,9 +15,8 @@ from django.views.generic.edit import BaseUpdateView
 from argus.forms import (GroupForm, GroupAuthenticationForm,
                          GroupChangePasswordForm, GroupRelatedForm,
                          SimpleSplitForm, EvenSplitForm,
-                         ManualSplitForm)
-from argus.models import (Party, Group, Share, Transaction, Category,
-                          URL_SAFE_CHARS)
+                         ManualSplitForm, GroupCreateFormSet)
+from argus.models import Party, Group, Transaction, Category
 from argus.tokens import token_generators
 from argus.utils import login, logout
 
@@ -193,26 +191,27 @@ class GroupLogoutView(RedirectView):
         return '/'
 
 
-class GroupCreateView(RedirectView):
-    permanent = False
+class GroupCreateView(CreateView):
+    form_class = GroupCreateFormSet
+    template_name = 'argus/group_create.html'
 
-    def get_redirect_url(self, *args, **kwargs):
-        while True:
-            slug = get_random_string(length=6, allowed_chars=URL_SAFE_CHARS)
-            if not Group.objects.filter(slug=slug).exists():
-                group = Group.objects.create(slug=slug)
-                category = Category.objects.create(name=Category.DEFAULT_NAME,
-                                                   group=group)
-                group.default_category = category
-                group.save()
-                break
-        return group.get_absolute_url()
+    def get_form_kwargs(self):
+        kwargs = super(GroupCreateView, self).get_form_kwargs()
+        kwargs['queryset'] = Party.objects.none()
+        del kwargs['instance']
+        return kwargs
 
+    def get_form_class(self):
+        return self.form_class
 
-class GroupListView(ListView):
-    model = Group
-    template_name = 'argus/group_list.html'
-    context_object_name = 'groups'
+    def get_success_url(self):
+        return self.object.get_absolute_url()
+
+    def get_context_data(self, **kwargs):
+        # Temporary, to make testing easier.
+        context = super(GroupCreateView, self).get_context_data(**kwargs)
+        context['groups'] = Group.objects.all()
+        return context
 
 
 class GroupDetailView(DetailView):
@@ -237,6 +236,7 @@ class GroupDetailView(DetailView):
                                                   ).order_by('-paid_at'
                                                   ).prefetch_related('shares')
         context['recent_transactions'] = transactions
+        context['members'] = self.object.parties.filter(party_type=Party.MEMBER)
         return context
 
 

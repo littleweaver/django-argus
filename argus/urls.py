@@ -2,7 +2,7 @@ from django.conf.urls import patterns, url
 from django.views.generic import TemplateView
 
 from argus.models import Party, Category, Group
-from argus.views import (PartyDetailView, GroupListView, GroupDetailView,
+from argus.views import (PartyDetailView, GroupDetailView,
                          GroupCreateView, GroupUpdateView, GroupLoginView,
                          GroupChangePasswordView, GroupPasswordResetTokenView,
                          GroupPasswordResetConfirmView, GroupEmailConfirmView,
@@ -14,9 +14,6 @@ from argus.views import (PartyDetailView, GroupListView, GroupDetailView,
 
 urlpatterns = patterns('',
     url(r'^$',
-        GroupListView.as_view(),
-        name='argus_group_list'),
-    url(r'^create/',
         GroupCreateView.as_view(),
         name='argus_group_create'),
     url(r'^logout/$',
