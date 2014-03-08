@@ -1,17 +1,25 @@
-from django import forms
 from django.conf import settings
 from django.contrib.sites.shortcuts import get_current_site
 from django.core.mail import send_mail
+from django.forms.models import BaseModelFormSet, modelformset_factory
 from django.template import loader
 from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext_lazy as _
+import floppyforms as forms
 
 from argus.models import (Group, Transaction, Party, Share, Category,
                           URL_SAFE_CHARS)
 from argus.tokens import token_generators
 
 
-class BaseGroupCreateFormSet(forms.models.BaseModelFormSet):
+class PartyForm(forms.ModelForm):
+    class Meta:
+        widgets = {
+            'name': forms.TextInput,
+        }
+
+
+class BaseGroupCreateFormSet(BaseModelFormSet):
     def clean(self):
         super(BaseGroupCreateFormSet, self).clean()
         filled = sum([1 if form.cleaned_data else 0
@@ -39,8 +47,9 @@ class BaseGroupCreateFormSet(forms.models.BaseModelFormSet):
     save.alters_data = True
 
 
-GroupCreateFormSet = forms.models.modelformset_factory(
+GroupCreateFormSet = modelformset_factory(
     Party,
+    form=PartyForm,
     formset=BaseGroupCreateFormSet,
     extra=3,
     fields=('name',))
@@ -55,6 +64,13 @@ class GroupForm(forms.ModelForm):
     class Meta:
         model = Group
         exclude = ('password', 'confirmed_email', 'created',)
+        widgets = {
+            'slug': forms.SlugInput,
+            'name': forms.TextInput,
+            'email': forms.EmailInput,
+            'currency': forms.TextInput,
+            'default_category': forms.Select,
+        }
 
     def __init__(self, request, *args, **kwargs):
         self.request = request
@@ -165,6 +181,9 @@ class GroupChangePasswordForm(forms.ModelForm):
 class GroupRelatedForm(forms.ModelForm):
     class Meta:
         exclude = ('group',)
+        widgets = {
+            'name': forms.TextInput,
+        }
 
     def __init__(self, group, *args, **kwargs):
         self.group = group
@@ -179,6 +198,15 @@ class TransactionForm(forms.ModelForm):
     class Meta:
         model = Transaction
         exclude = ('split',)
+        widgets = {
+            'paid_by': forms.Select,
+            'paid_to': forms.Select,
+            'memo': forms.TextInput,
+            'amount': forms.NumberInput,
+            'paid_at': forms.SplitDateTimeWidget,
+            'category': forms.Select,
+            'notes': forms.Textarea,
+        }
 
     def __init__(self, group, split=Transaction.SIMPLE, *args, **kwargs):
         super(TransactionForm, self).__init__(*args, **kwargs)

@@ -1,5 +1,7 @@
 {% extends "argus/__group.html" %}
 
+{% load floppyforms %}
+
 {% block content %}
 	<h1><a href="{{ group.get_absolute_url }}">{{ group.name|default:group.slug }}</a></h1>
 
@@ -7,9 +9,7 @@
 
 	<form action="{{ request.path }}" method="post">
 		{% csrf_token %}
-		<table>
-		{{ form.as_table }}
-		</table>
+		{% form form %}
 		<button type="submit">{% if category.pk %}Save changes{% else %}Add category{% endif %}</button>
 	</form>
 {% endblock %}

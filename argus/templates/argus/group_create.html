@@ -1,5 +1,7 @@
 {% extends "argus/__base.html" %}
 
+{% load floppyforms %}
+
 {% block content %}
 	<h1>Welcome to Argus</h1>
 	<p>Hey there! Argus is really cool, and one day we'll write something about why you should use it. And then this will probably also stop being a list of groups because privacy.</p>
@@ -16,12 +18,12 @@
 
 	<form action="{% url 'argus_group_create' %}" method="post">
 		{% csrf_token %}
-		<table>
-			{% if form.non_form_errors %}
-				{{ form.non_form_errors }}
-			{% endif %}
-			{{ form.as_table }}
-		</table>
+		{% if form.non_form_errors %}
+			{{ form.non_form_errors }}
+		{% endif %}
+		{% for subform in form.forms %}
+			{% form subform %}
+		{% endfor %}
 		<button class="btn btn-primary">Create a group!</button>
 	</form>
 {% endblock %}

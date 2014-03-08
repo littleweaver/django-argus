@@ -1,14 +1,14 @@
 {% extends "argus/__group.html" %}
 
+{% load floppyforms %}
+
 {% block content %}
 	<h1><a href="{{ group.get_absolute_url }}">{{ group.name|default:group.slug }}</a></h1>
 
 	<form action="{{ request.path }}" method="post">
 		{% csrf_token %}
 		<small>Note: changing the slug changes your group URL, so you will not be able to hit "back."</small>
-		<table>
-		{{ form.as_table }}
-		</table>
+		{% form form %}
 		<button type="submit">Save changes</button>
 	</form>
 
