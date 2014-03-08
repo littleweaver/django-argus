@@ -5,6 +5,7 @@
 
 	<form action="{{ request.path }}" method="post">
 		{% csrf_token %}
+		<small>Note: changing the slug changes your group URL, so you will not be able to hit "back."</small>
 		<table>
 		{{ form.as_table }}
 		</table>
