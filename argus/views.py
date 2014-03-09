@@ -81,7 +81,6 @@ class TokenView(DetailView):
 
 class GroupPasswordResetTokenView(TokenView):
     model = Group
-    context_object_name = "group"
     generator = token_generators['password_reset']
     subject_template_name = "argus/mail/group_password_reset_subject.txt"
     body_template_name = "argus/mail/group_password_reset_body.txt"
@@ -133,7 +132,6 @@ class GroupPasswordResetConfirmView(FormView):
 
 class GroupEmailConfirmView(DetailView):
     model = Group
-    context_object_name = "group"
     generator = token_generators['email_confirm']
     template_name = 'argus/group_email_confirm.html'
 
@@ -217,7 +215,6 @@ class GroupCreateView(CreateView):
 class GroupDetailView(DetailView):
     model = Group
     template_name = 'argus/group_detail.html'
-    context_object_name = 'group'
 
     def get_queryset(self):
         qs = super(GroupDetailView, self).get_queryset()
@@ -322,11 +319,15 @@ class GroupRelatedDetailView(DetailView):
         context = self.get_context_data(object=self.object)
         return self.render_to_response(context)
 
+    def get_context_data(self, **kwargs):
+        context = super(GroupRelatedDetailView, self).get_context_data(**kwargs)
+        context['group'] = self.object.group
+        return context
+
 
 class PartyDetailView(GroupRelatedDetailView):
     model = Party
     template_name = 'argus/party_detail.html'
-    context_object_name = 'party'
 
     def get_context_data(self, **kwargs):
         context = super(PartyDetailView, self).get_context_data(**kwargs)
@@ -343,7 +344,6 @@ class PartyDetailView(GroupRelatedDetailView):
 class CategoryDetailView(GroupRelatedDetailView):
     model = Category
     template_name = 'argus/category_detail.html'
-    context_object_name = 'category'
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()

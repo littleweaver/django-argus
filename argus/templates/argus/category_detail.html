@@ -1,23 +1,23 @@
 {% extends "argus/__group.html" %}
 
-{% block title %}{{ category.name }} – {{ category.group.name }} – {{block.super }}{% endblock %}
+{% block title %}{{ category.name }} – {{ group.name }} – {{block.super }}{% endblock %}
 
 {% block navbar-collapse %}
   <ul class="nav navbar-nav">
-    <li><a href="{{ category.group.get_absolute_url }}">{{ category.group.name|default:category.group.slug }}</a></li>
+    <li><a href="{{ group.get_absolute_url }}">{{ group.name|default:group.slug }}</a></li>
   </ul>
   <ul class="nav navbar-nav navbar-right">
-    <li><a href="{% url 'argus_group_update' slug=category.group.slug %}"><span class="glyphicon glyphicon-cog"></span></a></li>
+    <li><a href="{% url 'argus_group_update' slug=group.slug %}"><span class="glyphicon glyphicon-cog"></span></a></li>
   </ul>
 {% endblock navbar-collapse %}
 
 
 {% block content %}
 <pre>Name: {{ category.name }}</pre>
-<pre>Group: <a href="{{ category.group.get_absolute_url }}">{{ category.group }}</a></pre>
+<pre>Group: <a href="{{ group.get_absolute_url }}">{{ group }}</a></pre>
 <pre>Total transaction: {{ total_transaction }}</pre>
 
-<p><a href="{% url 'argus_category_update' group_slug=category.group.slug pk=category.pk %}">Edit category</a></p>
+<p><a href="{% url 'argus_category_update' group_slug=group.slug pk=category.pk %}">Edit category</a></p>
 
 <table class="table">
 	<thead>
@@ -26,7 +26,7 @@
 			<th>Paid by</th>
 			<th>Paid to</th>
 			<th>Memo</th>
-			<th>Cost ({{ category.group.currency }})</th>
+			<th>Cost ({{ group.currency }})</th>
 		</tr>
 	</thead>
 	<tbody>
