@@ -148,7 +148,8 @@ class TransactionManager(models.Manager):
         if members is None:
             members = paid_by.group.parties.filter(party_type=Party.MEMBER)
 
-        Share.objects.create_even(transaction, members)
+        Share.objects.create_split(transaction,
+                                   [(member, 1) for member in members])
 
         return transaction
 
@@ -161,15 +162,21 @@ class Transaction(models.Model):
     """
     # Payment from one party to another.
     SIMPLE = 'simple'
-    # Even split among all members.
+    # Even split among certain members.
     EVEN = 'even'
-    # Manual split by transaction creator.
-    MANUAL = 'manual'
+    # Manual split by percentage.
+    PERCENT = 'percent'
+    # Manual split by amount.
+    AMOUNT = 'amount'
+    # Manual split by shares.
+    SHARES = 'shares'
 
     SPLIT_CHOICES = (
         (SIMPLE, _('Simple payment')),
         (EVEN, _('Even split')),
-        (MANUAL, _('Manual entry')),
+        (PERCENT, _('Manual percentages')),
+        (AMOUNT, _('Manual amounts')),
+        (SHARES, _('Manual shares'))
     )
 
     paid_by = models.ForeignKey(Party, related_name='transactions_paid')
@@ -182,65 +189,35 @@ class Transaction(models.Model):
     notes = models.TextField(blank=True)
     split = models.CharField(max_length=7,
                              choices=SPLIT_CHOICES,
-                             default=MANUAL)
+                             default=EVEN)
 
     objects = TransactionManager()
 
     def __unicode__(self):
-        return u"{} ({})".format(smart_text(self.memo), self.cost)
+        return u"{} ({})".format(smart_text(self.memo), self.amount)
 
 
 class ShareManager(models.Manager):
-    def create_even(self, transaction, members):
-        shares = [Share(transaction=transaction,
-                        party=member)
-                  for member in members]
-        self._set_even(shares, transaction.amount)
+    def create_split(self, transaction, member_numerators):
+        members, numerators = zip(*member_numerators)
+        denominator = sum(numerators)
+        shares = []
+        for member, numerator in member_numerators:
+            amount = Decimal((numerator * transaction.amount)
+                             / denominator).quantize(Decimal('0.01'))
+            shares.append(Share(transaction=transaction,
+                                party=member,
+                                numerator=numerator,
+                                denominator=denominator,
+                                amount=amount))
 
-        Share.objects.bulk_create(shares)
+        amount_sum = sum([share.amount for share in shares])
 
-    def set_even(self, transaction):
-        shares = transaction.shares.all()
-        self._set_even(shares, transaction.amount)
-        for share in self.shares:
-            share.save()
+        if amount_sum != transaction.amount:
+            share = random.choice(shares)
+            share.amount = transaction.amount - (amount_sum - share.amount)
 
-    def _set_even(self, shares, total_cost):
-        portion = (Decimal('1.00') / len(shares)).quantize(Decimal('.0001'))
-        share_amount = (total_cost / len(shares)).quantize(Decimal('.01'))
-
-        for share in shares:
-            share.portion = portion
-            share.amount = share_amount
-        self.auto_tweak(shares, total_cost, portion_is_manual=False,
-                        amount_is_manual=False)
-
-    def auto_tweak(self, shares, total_cost, portion_is_manual=True,
-                   amount_is_manual=True):
-        for share in shares:
-            share.portion_is_manual = portion_is_manual
-            share.amount_is_manual = amount_is_manual
-
-        amounts, portions = zip(*[(share.amount, share.portion)
-                                  for share in shares])
-        amount_sum = sum(amounts)
-        portion_sum = sum(portions)
-
-        if portion_is_manual and portion_sum != 1:
-            raise ValueError("Manual portions do not sum to 1.")
-
-        if amount_is_manual and amount_sum != total_cost:
-            raise ValueError("Manual amounts do not sum to cost.")
-
-        share = random.choice(shares)
-
-        if portion_sum != 1:
-            # We already know that portion is auto.
-            share.portion = 1 - (portion_sum - share.portion)
-
-        if amount_sum != total_cost:
-            # We already know that amount is auto.
-            share.amount = total_cost - (amount_sum - share.amount)
+        return Share.objects.bulk_create(shares)
 
 
 class Share(models.Model):
@@ -250,16 +227,18 @@ class Share(models.Model):
     """
     transaction = models.ForeignKey(Transaction, related_name='shares')
     party = models.ForeignKey(Party, related_name='shares')
-    # Decimal less than one indicating what part of the total cost
-    # this person bears.
-    portion = models.DecimalField(max_digits=5, decimal_places=4)
-    portion_is_manual = models.BooleanField(default=False)
+
     # Raw amount that the person is expected to pay.
     amount = models.DecimalField(max_digits=11, decimal_places=2)
-    amount_is_manual = models.BooleanField(default=False)
+
+    # Integers indicating what exact portion of the total cost
+    # this person bears.
+    numerator = models.PositiveIntegerField()
+    denominator = models.PositiveIntegerField()
 
     objects = ShareManager()
 
     @property
     def percentage(self):
-        return (self.portion * 100).quantize(Decimal('.01'))
+        fraction = Decimal(self.numerator) / Decimal(self.denominator)
+        return (fraction * 100).quantize(Decimal('.01'))

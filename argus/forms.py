@@ -244,7 +244,8 @@ class SimpleSplitForm(TransactionForm):
             Share.objects.create(
                 transaction=instance,
                 party=instance.paid_by,
-                portion=1,
+                numerator=1,
+                denominator=1,
                 amount=instance.amount)
         return instance
 
@@ -269,18 +270,20 @@ class EvenSplitForm(TransactionForm):
 
     def save(self):
         instance = super(EvenSplitForm, self).save()
-        Share.objects.create_even(instance, self.cleaned_data['among'])
+        Share.objects.create_split(instance,
+                                   [(member, 1)
+                                    for member in self.cleaned_data['among']])
         return instance
 
 
 class ManualSplitForm(TransactionForm):
-    input_type = forms.ChoiceField(widget=forms.RadioSelect,
-                                   choices=(('percent', _('Percent')),
-                                            ('amount', _('Amount'))))
+    split = forms.ChoiceField(widget=forms.RadioSelect,
+                              choices=((Transaction.PERCENT, _('Percent')),
+                                       (Transaction.AMOUNT, _('Amount')),
+                                       (Transaction.SHARES, _('Shares'))))
 
     def __init__(self, *args, **kwargs):
-        super(ManualSplitForm, self).__init__(split=Transaction.MANUAL,
-                                              *args, **kwargs)
+        super(ManualSplitForm, self).__init__(*args, **kwargs)
         for member in self.members:
             field = forms.DecimalField(decimal_places=2, min_value=0,
                                        initial=0, label=member.name)
@@ -289,39 +292,30 @@ class ManualSplitForm(TransactionForm):
 
     def clean(self):
         cleaned_data = super(ManualSplitForm, self).clean()
-        input_type = cleaned_data['input_type']
-        amounts = [cleaned_data['member{}'].format(member.pk)
-                   for member in self.members]
+        split = cleaned_data['split']
+        amounts = [cleaned_data['member{}'.format(member.pk)]
+                   for member in self.members
+                   if cleaned_data['member{}'.format(member.pk)]]
         cleaned_total = sum(amounts)
-        if input_type == 'percent':
+        if split == 'percent':
             if cleaned_total != 100:
                 raise forms.ValidationError("Percentages must add up to "
                                             "100.00%.")
-        else:
-            if cleaned_total != cleaned_data.amount:
+        if split == 'amount':
+            if cleaned_total != cleaned_data['amount']:
                 raise forms.ValidationError("Share amounts must add up to "
                                             "total cost.")
         return cleaned_data
 
+    def _post_clean(self):
+        super(ManualSplitForm, self)._post_clean()
+        self.instance.split = self.cleaned_data['split']
+
     def save(self):
         instance = super(ManualSplitForm, self).save()
         cd = self.cleaned_data
-        portion_is_manual = cd['input_type'] == 'percent'
-        amount_is_manual = cd['input_type'] == 'amount'
-        shares = [
-            Share(transaction=instance,
-                  member=member,
-                  portion=(cd['member{}'.format(member.pk)] / 100
-                           if portion_is_manual else
-                           cd['member{}'.format(member.pk)] /
-                           instance.amount),
-                  amount=(cd['member{}'.format(member.pk)]
-                          if amount_is_manual else instance.amount *
-                          (cd['member{}'.format(member.pk)] / 100)))
-            for member in self.members
-        ]
-        Share.objects.auto_tweak(shares, instance.amount,
-                                 portion_is_manual=portion_is_manual,
-                                 amount_is_manual=amount_is_manual)
-        Share.objects.bulk_create(shares)
+        member_numerators = [(member, cd['member{}'.format(member.pk)] * 100)
+                             for member in self.members
+                             if cd['member{}'.format(member.pk)]]
+        Share.objects.create_split(instance, member_numerators)
         return instance
