@@ -297,11 +297,11 @@ class ManualSplitForm(TransactionForm):
                    for member in self.members
                    if cleaned_data['member{}'.format(member.pk)]]
         cleaned_total = sum(amounts)
-        if split == 'percent':
+        if split == Transaction.PERCENT:
             if cleaned_total != 100:
                 raise forms.ValidationError("Percentages must add up to "
                                             "100.00%.")
-        if split == 'amount':
+        if split == Transaction.AMOUNT:
             if cleaned_total != cleaned_data['amount']:
                 raise forms.ValidationError("Share amounts must add up to "
                                             "total cost.")
