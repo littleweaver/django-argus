@@ -14,7 +14,7 @@
 {% endblock navbar-collapse %}
 
 
-{% block content %}
+{% block main %}
   <pre>Name: {{ party.name }}</pre>
   <pre>Group: <a href="{{ group.get_absolute_url }}">{{ group }}</a></pre>
   <pre>Balance: {{ balance }} or {{ party.balance }}</pre>
@@ -55,4 +55,4 @@
       {% endfor %}
     </tbody>
   </table>
-{% endblock %}
+{% endblock main %}

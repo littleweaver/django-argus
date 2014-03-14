@@ -2,7 +2,7 @@
 
 {% load floppyforms %}
 
-{% block content %}
+{% block main %}
 	<h1><a href="{{ group.get_absolute_url }}">{{ group.name|default:group.slug }}</a></h1>
 
 	<form action="{{ request.path }}" method="post">
@@ -20,4 +20,4 @@
 	{% endif %}
 
 	<p><a href="{% url 'argus_group_change_password' slug=group.slug %}">{% if group.password %}Change{% else %}Add{% endif %} password</a></p>
-{% endblock%}
+{% endblock main %}

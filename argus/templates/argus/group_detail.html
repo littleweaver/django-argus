@@ -1,41 +1,48 @@
 {% extends "argus/__group.html" %}
 
-{% block grouplink %}<a href="{{ group.get_absolute_url }}">{{ group.name|default:group.slug }}</a>{% endblock grouplink %}
-
-{% block content %}
-	<h1><a href="{{ group.get_absolute_url }}">{{ group.name|default:group.slug }}</a> <a href="{% url 'argus_group_update' slug=group.slug %}"><span class="glyphicon glyphicon-cog small"></span></a></h1>
-
-	{% if group.password %}<p><a href="{% url 'argus_group_logout' %}">Logout</a></p>{% endif %}
-
-	{% if not group.password %}
-		<div class="alert alert-warning">
-			This group doesn’t have a password yet! Maybe you just created it. To keep your group’s information safe from snoopers and saboteurs, <a href="{% url 'argus_group_change_password' group.slug %}">protect it with a password</a>.
-		</div>
-	{% endif %}
-
-	<ul class="nav nav-pills">
-		<li><h4>Members</h4></li>
-		{% if members %}
-			{% for member in members %}
-				<li><a href="{{ member.get_absolute_url }}">{{ member.name }}: {{ member.balance }}</a></li>
-			{% endfor %}
-		{% endif %}
-		<li><a href="{% url 'argus_party_create' group_slug=group.slug %}"><span class="glyphicon glyphicon-plus"></span></a></li>
-	</ul>
-
-	{% with categories=group.categories.all %}
-		<ul class="nav nav-pills">
-			<li><h4>Categories</h4></li>
-			{% if categories %}
-				{% for category in categories %}
-					<li><a href="{{ category.get_absolute_url }}">{{ category.name }}</a></li>
-				{% endfor %}
+{% block side %}
+	<div class="panel panel-default">
+		<div class="panel-heading">
+			{% if group.password %}
+				<div class="pull-right"><a href="{% url 'argus_group_logout' %}">Logout</a></div>
 			{% endif %}
-			<li><a href="{% url 'argus_category_create' group_slug=group.slug %}"><span class="glyphicon glyphicon-plus"></span></a></li>
-		</ul>
-	{% endwith %}
+			<h3 class="panel-title">{{ group.name|default:group.slug }}</h3>
+		</div>
+		<div class="panel-body">
+			
 
+			{% if not group.password %}
+				<div class="alert alert-warning">
+					This group doesn’t have a password yet! Maybe you just created it. To keep your group’s information safe from snoopers and saboteurs, <a href="{% url 'argus_group_change_password' group.slug %}">protect it with a password</a>.
+				</div>
+			{% endif %}
 
+			<ul class="nav nav-pills">
+				<li><h4>Members</h4></li>
+				{% if members %}
+					{% for member in members %}
+						<li><a href="{{ member.get_absolute_url }}">{{ member.name }}: {{ member.balance }}</a></li>
+					{% endfor %}
+				{% endif %}
+				<li><a href="{% url 'argus_party_create' group_slug=group.slug %}"><span class="glyphicon glyphicon-plus"></span></a></li>
+			</ul>
+
+			{% with categories=group.categories.all %}
+				<ul class="nav nav-pills">
+					<li><h4>Categories</h4></li>
+					{% if categories %}
+						{% for category in categories %}
+							<li><a href="{{ category.get_absolute_url }}">{{ category.name }}</a></li>
+						{% endfor %}
+					{% endif %}
+					<li><a href="{% url 'argus_category_create' group_slug=group.slug %}"><span class="glyphicon glyphicon-plus"></span></a></li>
+				</ul>
+			{% endwith %}
+		</div>{# /.panel-body #}
+	</div>{# /.panel #}
+{% endblock side %}
+
+{% block main %}
 	<h2>Record a New Expense</h2>
 	<p>
 		<a href="{% url 'argus_payment_create' group_slug=group.slug %}" class="btn btn-primary">Simple Payment</a>
@@ -77,4 +84,4 @@
 			{% endfor %}
 		</tbody>
 	</table>
-{% endblock %}
+{% endblock main %}

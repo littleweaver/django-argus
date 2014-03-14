@@ -1,8 +1,8 @@
-{% extends "argus/__base.html" %}
+{% extends "argus/layouts/50_50.html" %}
 
 {% load floppyforms %}
 
-{% block content %}
+{% block left %}
 	<h1>Welcome to Argus</h1>
 	<p>Argus is an easy way to keep track of shared expenses for small groups. Use Argus to let people know when you spend money, see who owes who, and settle your balances.</p>
 	{% if groups %}
@@ -15,7 +15,9 @@
 	{% else %}
 		<p>No groups have been created yet.</p>
 	{% endif %}
+{% endblock left %}
 
+{% block right %}
 	<h1>Try Argus</h1>
 
 	<p>Start using Argus immediately. Enter the names of the members of your group below (you can always add members later) to create your group page.</p>
@@ -31,4 +33,4 @@
 		{% endfor %}
 		<button class="btn btn-primary">Create a group!</button>
 	</form>
-{% endblock %}
+{% endblock right %}
