@@ -7,6 +7,12 @@
 
 	{% if group.password %}<p><a href="{% url 'argus_group_logout' %}">Logout</a></p>{% endif %}
 
+	{% if not group.password %}
+		<div class="alert alert-warning">
+			This group doesn’t have a password yet! Maybe you just created it. To keep your group’s information safe from snoopers and saboteurs, <a href="{% url 'argus_group_change_password' group.slug %}">protect it with a password</a>.
+		</div>
+	{% endif %}
+
 	<ul class="nav nav-pills">
 		<li><h4>Members</h4></li>
 		{% if members %}
