@@ -21,6 +21,7 @@
 		{% if form.non_form_errors %}
 			{{ form.non_form_errors }}
 		{% endif %}
+		{{ form.management_form }}
 		{% for subform in form.forms %}
 			{% form subform %}
 		{% endfor %}
