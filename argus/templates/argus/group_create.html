@@ -4,7 +4,7 @@
 
 {% block content %}
 	<h1>Welcome to Argus</h1>
-	<p>Hey there! Argus is really cool, and one day we'll write something about why you should use it. And then this will probably also stop being a list of groups because privacy.</p>
+	<p>Argus is an easy way to keep track of shared expenses for small groups. Use Argus to let people know when you spend money, see who owes who, and settle your balances.</p>
 	{% if groups %}
 		<h2>Existing Groups</h2>
 		<ul>
@@ -15,6 +15,10 @@
 	{% else %}
 		<p>No groups have been created yet.</p>
 	{% endif %}
+
+	<h1>Try Argus</h1>
+
+	<p>Start using Argus immediately. Enter the names of the members of your group below (you can always add members later) to create your group page.</p>
 
 	<form action="{% url 'argus_group_create' %}" method="post">
 		{% csrf_token %}
