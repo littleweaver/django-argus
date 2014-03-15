@@ -17,25 +17,21 @@
 				</div>
 			{% endif %}
 
-			<ul class="nav nav-pills">
-				<li><h4>Members</h4></li>
-				{% if members %}
-					{% for member in members %}
-						<li><a href="{{ member.get_absolute_url }}">{{ member.name }}: {{ member.balance }}</a></li>
-					{% endfor %}
-				{% endif %}
-				<li><a href="{% url 'argus_party_create' group_slug=group.slug %}"><span class="glyphicon glyphicon-plus"></span></a></li>
+			<h4>Members</h4>
+			<ul>
+				{% for member in members %}
+					<li><a href="{{ member.get_absolute_url }}">{{ member.name }}: {{ member.balance }}</a></li>
+				{% endfor %}
+				<li><a href="{% url 'argus_party_create' group_slug=group.slug %}"><span class="glyphicon glyphicon-plus"></span> Add Member</a></li>
 			</ul>
 
 			{% with categories=group.categories.all %}
-				<ul class="nav nav-pills">
-					<li><h4>Categories</h4></li>
-					{% if categories %}
-						{% for category in categories %}
-							<li><a href="{{ category.get_absolute_url }}">{{ category.name }}</a></li>
-						{% endfor %}
-					{% endif %}
-					<li><a href="{% url 'argus_category_create' group_slug=group.slug %}"><span class="glyphicon glyphicon-plus"></span></a></li>
+				<h4>Categories</h4>
+				<ul>
+					{% for category in categories %}
+						<li><a href="{{ category.get_absolute_url }}">{{ category.name }}</a></li>
+					{% endfor %}
+					<li><a href="{% url 'argus_category_create' group_slug=group.slug %}"><span class="glyphicon glyphicon-plus"></span> New Category</a></li>
 				</ul>
 			{% endwith %}
 		</div>{# /.panel-body #}
