@@ -202,7 +202,7 @@ class TransactionForm(forms.ModelForm):
             'paid_by': forms.Select,
             'paid_to': forms.Select,
             'memo': forms.TextInput,
-            'amount': forms.NumberInput,
+            'amount': forms.NumberInput(attrs={'step': 0.01}),
             'paid_at': forms.SplitDateTimeWidget,
             'category': forms.Select,
             'notes': forms.Textarea,
