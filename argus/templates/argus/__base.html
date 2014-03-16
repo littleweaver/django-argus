@@ -20,9 +20,6 @@
 			<link rel="stylesheet" type="text/css" href="{% static "argus/css/styles.css" %}" />
 		{% endblock %}
 
-		{% block javascripts %}
-		{% endblock %}
-
 	</head>
 	<body class="{% block body-classes %}argus{% endblock %}">
 		<nav class="navbar navbar-default" role="navigation">
@@ -56,19 +53,21 @@
 			{% endblock %}
 		</div>
 
-		<!-- Google Analytics: change UA-XXXXX-X to be your site's ID. -->
-		<!--
-		<script>
-			(function(b,o,i,l,e,r){b.GoogleAnalyticsObject=l;b[l]||(b[l]=
-			function(){(b[l].q=b[l].q||[]).push(arguments)});b[l].l=+new Date;
-			e=o.createElement(i);r=o.getElementsByTagName(i)[0];
-			e.src='//www.google-analytics.com/analytics.js';
-			r.parentNode.insertBefore(e,r)}(window,document,'script','ga'));
-			ga('create','UA-XXXXX-X');ga('send','pageview');
-		</script>
-		-->
-		<script src="{% static "argus/js/jquery-1.11.0.min.js" %}"></script>
-		<script src="{% static "argus/js/bootstrap/transition.js" %}"></script>
-		<script src="{% static "argus/js/bootstrap/collapse.js" %}"></script>
+		{% block javascripts %}
+			<!-- Google Analytics: change UA-XXXXX-X to be your site's ID. -->
+			<!--
+			<script>
+				(function(b,o,i,l,e,r){b.GoogleAnalyticsObject=l;b[l]||(b[l]=
+				function(){(b[l].q=b[l].q||[]).push(arguments)});b[l].l=+new Date;
+				e=o.createElement(i);r=o.getElementsByTagName(i)[0];
+				e.src='//www.google-analytics.com/analytics.js';
+				r.parentNode.insertBefore(e,r)}(window,document,'script','ga'));
+				ga('create','UA-XXXXX-X');ga('send','pageview');
+			</script>
+			-->
+			<script src="{% static "argus/js/jquery-1.11.0.min.js" %}"></script>
+			<script src="{% static "argus/js/bootstrap/transition.js" %}"></script>
+			<script src="{% static "argus/js/bootstrap/collapse.js" %}"></script>
+		{% endblock %}
 	</body>
 </html>
