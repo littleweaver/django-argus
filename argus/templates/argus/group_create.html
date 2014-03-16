@@ -1,25 +1,13 @@
-{% extends "argus/__base.html" %}
+{% extends "argus/layouts/50_50.html" %}
 
 {% load floppyforms %}
 
-{% block content %}
+{% block left %}
 	<h1>Welcome to Argus</h1>
 	<p>Argus is an easy way to keep track of shared expenses for small groups. Use Argus to let people know when you spend money, see who owes who, and settle your balances.</p>
-	{% if groups %}
-		<h2>Existing Groups</h2>
-		<ul>
-			{% for group in groups %}
-				<li><a href="{{ group.get_absolute_url }}">{{ group.name|default:group.slug }}</a></li>
-			{% endfor %}
-		</ul>
-	{% else %}
-		<p>No groups have been created yet.</p>
-	{% endif %}
 
 	<h1>Try Argus</h1>
-
 	<p>Start using Argus immediately. Enter the names of the members of your group below (you can always add members later) to create your group page.</p>
-
 	<form action="{% url 'argus_group_create' %}" method="post">
 		{% csrf_token %}
 		{% if form.non_form_errors %}
@@ -31,4 +19,17 @@
 		{% endfor %}
 		<button class="btn btn-primary">Create a group!</button>
 	</form>
-{% endblock %}
+{% endblock left %}
+
+{% block right %}
+	{% if groups %}
+		<h2>Existing Groups</h2>
+		<ul>
+			{% for group in groups %}
+				<li><a href="{{ group.get_absolute_url }}">{{ group.name|default:group.slug }}</a></li>
+			{% endfor %}
+		</ul>
+	{% else %}
+		<p>No groups have been created yet.</p>
+	{% endif %}
+{% endblock right %}

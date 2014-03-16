@@ -12,7 +12,7 @@
 {% endblock navbar-collapse %}
 
 
-{% block content %}
+{% block main %}
 <pre>Name: {{ category.name }}</pre>
 <pre>Group: <a href="{{ group.get_absolute_url }}">{{ group }}</a></pre>
 <pre>Total transaction: {{ total_transaction }}</pre>
@@ -41,4 +41,4 @@
 		{% endfor %}
 	</tbody>
 </table>
-{% endblock %}
+{% endblock main %}

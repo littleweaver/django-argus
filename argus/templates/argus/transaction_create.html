@@ -2,7 +2,7 @@
 
 {% load floppyforms %}
 
-{% block content %}
+{% block main %}
 	<h1><a href="{{ group.get_absolute_url }}">{{ group.name|default:group.slug }}</a></h1>
 
 	<h2>Add a transaction</h2>
@@ -12,4 +12,4 @@
 		{% form form %}
 		<button type="submit">Record transaction</button>
 	</form>
-{% endblock %}
+{% endblock main %}

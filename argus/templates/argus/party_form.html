@@ -2,7 +2,7 @@
 
 {% load floppyforms %}
 
-{% block content %}
+{% block main %}
 	<h1><a href="{{ group.get_absolute_url }}">{{ group.name|default:group.slug }}</a></h1>
 
 	<h2>{% if party.pk %}Edit {{ party.party_type }}: {{ party.name }}{% else %}Add a party{% endif %}</h2>
@@ -12,4 +12,4 @@
 		{% form form %}
 		<button type="submit">{% if party.pk %}Save changes{% else %}Add party{% endif %}</button>
 	</form>
-{% endblock %}
+{% endblock main %}
