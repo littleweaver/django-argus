@@ -1,6 +1,22 @@
 {% extends "argus/layouts/50_50.html" %}
 
-{% load floppyforms %}
+{% load static floppyforms %}
+
+{% block javascripts %}
+	{{ block.super }}
+	<script type="text/javascript">
+		window.django = {
+			jQuery: jQuery
+		};
+		jQuery(function () {
+			$('#create-form .form-group').formset({
+				emptyCssClass: 'hidden',
+				formsetContainer: '#formset-container'
+			});
+		});
+	</script>
+	<script src="{% static "argus/js/formset.js" %}"></script>
+{% endblock %}
 
 {% block left %}
 	<h1>Welcome to Argus</h1>
@@ -8,17 +24,36 @@
 
 	<h1>Try Argus</h1>
 	<p>Start using Argus immediately. Enter the names of the members of your group below (you can always add members later) to create your group page.</p>
-	<form action="{% url 'argus_group_create' %}" method="post">
+
+	<form id="create-form" action="{% url 'argus_group_create' %}" method="post">
 		{% csrf_token %}
+
 		{% if form.non_form_errors %}
 			{{ form.non_form_errors }}
 		{% endif %}
 		{{ form.management_form }}
-		{% for subform in form.forms %}
-			{% form subform %}
-		{% endfor %}
+
+		<div id="formset-container">
+			{% for subform in form.forms %}
+				{% form subform %}
+			{% endfor %}
+		</div>
+
 		<button class="btn btn-primary">Create a group!</button>
 	</form>
+
+	{# Form template placed outside of <form> to prevent browser-side validation errors when submitting. #}
+	{% form form.empty_form using %}
+		{% for field in form.visible_fields %}
+			<div id="form-empty" class="control-group hidden">
+				<label class="control-label" for="{{ field|id }}">{{ field.label }}{% if field.field.required %} <span class="required">*</span>{% endif %}{% if field.label|last not in ".:!?" %}:{% endif %}</label>
+				<div class="controls {{ classes }} field-{{ field.name }}">
+					{% formfield field %}
+				</div>
+			</div>
+		{% endfor %}
+	{% endform %}
+
 {% endblock left %}
 
 {% block right %}
