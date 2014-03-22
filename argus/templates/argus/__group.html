@@ -5,6 +5,9 @@
 		<li><a href="{{ group.get_absolute_url }}">{{ group.name|default:group.slug }}</a></li>
 	</ul>
 	<ul class="nav navbar-nav navbar-right">
-		<li><a href="{% url 'argus_group_update' slug=group.slug %}"><span class="glyphicon glyphicon-cog"></span></a></li>
+		<li><a href="{% url 'argus_group_update' slug=group.slug %}">Settings</a></li>
+		{% if group.password %}
+			<li><a href="{% url 'argus_group_logout' %}">Logout</a></li>
+		{% endif %}
 	</ul>
 {% endblock navbar-collapse %}
