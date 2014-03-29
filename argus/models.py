@@ -38,7 +38,7 @@ class Group(models.Model):
 
     def get_absolute_url(self):
         return reverse("argus_group_detail",
-                       kwargs={"slug": self.slug})
+                       kwargs={"group_slug": self.slug})
 
     def set_password(self, raw_password):
         self.password = make_password(raw_password)

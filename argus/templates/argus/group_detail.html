@@ -1,5 +1,7 @@
 {% extends "argus/__group.html" %}
 
+{% load floppyforms %}
+
 {% block side %}
 	<div class="panel panel-default">
 		<div class="panel-heading">
@@ -40,10 +42,31 @@
 
 {% block main %}
 	<h2>Record a New Expense</h2>
-	<p>
-		<a href="{% url 'argus_payment_create' group_slug=group.slug %}" class="btn btn-primary">Simple Payment</a>
-		<a href="{% url 'argus_even_create' group_slug=group.slug %}" class="btn btn-primary">Even Split</a>
-		<a href="{% url 'argus_manual_create' group_slug=group.slug %}" class="btn btn-primary">Uneven Split</a></p>
+
+	<div>
+		<h3>Simple transaction (payment)</h3>
+		<form action="" method="post">
+			{% csrf_token %}
+			{% form forms.simple_form %}
+			<button type='submit'>Create transaction</button>
+		</form>
+	</div>
+	<div>
+		<h3>Even split transaction</h3>
+		<form action="" method="post">
+			{% csrf_token %}
+			{% form forms.even_form %}
+			<button type='submit'>Create transaction</button>
+		</form>
+	</div>
+	<div>
+		<h3>Manual split transaction</h3>
+		<form action="" method="post">
+			{% csrf_token %}
+			{% form forms.manual_form %}
+			<button type='submit'>Create transaction</button>
+		</form>
+	</div>
 
 
 	<table class="table">

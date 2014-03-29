@@ -7,8 +7,9 @@ from django.db import models
 from django.db.models import Q
 from django.forms.models import modelform_factory
 from django.http import Http404, HttpResponseRedirect
+from django.shortcuts import get_object_or_404
 from django.template import loader
-from django.views.generic import (DetailView, ListView, RedirectView,
+from django.views.generic import (DetailView, TemplateView, RedirectView,
                                   UpdateView, FormView, CreateView)
 from django.views.generic.edit import BaseUpdateView
 
@@ -212,29 +213,129 @@ class GroupCreateView(CreateView):
         return context
 
 
-class GroupDetailView(DetailView):
-    model = Group
-    template_name = 'argus/group_detail.html'
+class TransactionFormMixin(object):
+    def dispatch(self, request, *args, **kwargs):
+        if request.method.lower() in self.http_method_names:
+            self.group = self.get_group()
+            if _group_auth_needed(request, self.group):
+                return _group_auth_redirect(self.group)
+        return super(TransactionFormMixin, self).dispatch(request, *args,
+                                                          **kwargs)
 
-    def get_queryset(self):
-        qs = super(GroupDetailView, self).get_queryset()
-        return qs.prefetch_related('parties', 'categories')
+    def get_group(self):
+        return get_object_or_404(Group, slug=self.kwargs['group_slug'])
 
-    def get(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        if _group_auth_needed(request, self.object):
-            return _group_auth_redirect(self.object)
-        context = self.get_context_data(object=self.object)
-        return self.render_to_response(context)
+    def get_transaction_forms(self, pk=None):
+        if pk:
+            self.transaction = get_object_or_404(Transaction, pk=pk)
+        else:
+            self.transaction = Transaction()
+        kwargs = {
+            'group': self.group,
+            'instance': self.transaction,
+        }
+        if self.request.method == 'POST':
+            kwargs['data'] = self.request.POST
+
+        forms = {
+            'simple_form': SimpleSplitForm(prefix='simple', **kwargs),
+            'even_form': EvenSplitForm(prefix='even', **kwargs),
+            'manual_form': ManualSplitForm(prefix='manual', **kwargs)
+        }
+        return forms
 
     def get_context_data(self, **kwargs):
-        context = super(GroupDetailView, self).get_context_data(**kwargs)
-        transactions = Transaction.objects.filter(paid_by__group=self.object
-                                                  ).order_by('-paid_at'
-                                                  ).prefetch_related('shares')
-        context['recent_transactions'] = transactions
-        context['members'] = self.object.parties.filter(party_type=Party.MEMBER)
+        context = super(TransactionFormMixin, self).get_context_data(**kwargs)
+        forms = self.get_transaction_forms()
+        context['forms'] = forms
+        context['group'] = self.group
         return context
+
+    def post(self, request, *args, **kwargs):
+        context = self.get_context_data(**kwargs)
+        forms = context['forms']
+        for form in forms:
+            if form.is_valid():
+                form.save()
+                return HttpResponseRedirect(self.group.get_absolute_url())
+        return self.render_to_response(context)
+
+
+class TransactionUpdateView(TransactionFormMixin, TemplateView):
+    template_name = 'argus/transaction_update.html'
+
+    def get_transaction_forms(self, pk=None):
+        pk = self.kwargs['pk']
+        return super(TransactionUpdateView, self).get_transaction_forms(pk)
+
+
+class TransactionListView(TransactionFormMixin, TemplateView):
+    template_name = 'argus/transaction_list.html'
+
+    def get_group(self):
+        qs = Group.objects.prefetch_related('parties', 'categories')
+        return get_object_or_404(qs, slug=self.kwargs['group_slug'])
+
+    def get_transactions(self):
+        return Transaction.objects.filter(paid_by__group=self.group
+                                          ).order_by('-paid_at'
+                                          ).prefetch_related('shares')
+
+    def get_context_data(self, **kwargs):
+        context = super(TransactionListView, self).get_context_data(**kwargs)
+        context['recent_transactions'] = self.get_transactions()
+        context['members'] = [p for p in self.group.parties.all()
+                              if p.party_type == Party.MEMBER]
+        return context
+
+
+class GroupDetailView(TransactionListView):
+    template_name = 'argus/group_detail.html'
+
+
+class GroupRelatedDetailView(TransactionListView):
+    def get_group(self):
+        group = super(GroupRelatedDetailView, self).get_group()
+        self.object = get_object_or_404(self.model, group=group)
+        return group
+
+    def get_context_data(self, **kwargs):
+        context = super(GroupRelatedDetailView, self).get_context_data(**kwargs)
+        context_object_name = getattr(self, 'context_object_name',
+                                      self.model._meta.verbose_name.lower())
+        context[context_object_name] = self.object
+        context['balance'] = self.get_balance()
+        return context
+
+    def get_balance(self):
+        raise NotImplementedError
+
+
+class PartyDetailView(GroupRelatedDetailView):
+    model = Party
+    template_name = 'argus/party_detail.html'
+
+    def get_balance(self):
+        return self.object.balance
+
+    def get_transactions(self):
+        return Transaction.objects.filter(Q(shares__party=self.object) |
+                                          Q(paid_by=self.object) |
+                                          Q(paid_to=self.object)
+                                          ).order_by('-paid_at'
+                                          ).distinct()
+
+
+class CategoryDetailView(GroupRelatedDetailView):
+    model = Category
+    template_name = 'argus/category_detail.html'
+
+    def get_balance(self):
+        transactions = self.get_transactions()
+        return transactions.aggregate(models.Sum('amount'))['amount__sum']
+
+    def get_transactions(self):
+        return self.object.transactions.order_by('-paid_at')
 
 
 class GroupUpdateView(UpdateView):
@@ -304,99 +405,3 @@ class GroupRelatedCreateView(GroupRelatedFormMixin, CreateView):
 class GroupRelatedUpdateView(GroupRelatedFormMixin, UpdateView):
     def get_success_url(self):
         return self.object.get_absolute_url()
-
-
-class GroupRelatedDetailView(DetailView):
-    def get_queryset(self):
-        qs = super(GroupRelatedDetailView, self).get_queryset()
-        qs = qs.select_related('group')
-        return qs.filter(group__slug=self.kwargs['group_slug'])
-
-    def get(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        if _group_auth_needed(request, self.object.group):
-            return _group_auth_redirect(self.object.group)
-        context = self.get_context_data(object=self.object)
-        return self.render_to_response(context)
-
-    def get_context_data(self, **kwargs):
-        context = super(GroupRelatedDetailView, self).get_context_data(**kwargs)
-        context['group'] = self.object.group
-        return context
-
-
-class PartyDetailView(GroupRelatedDetailView):
-    model = Party
-    template_name = 'argus/party_detail.html'
-
-    def get_context_data(self, **kwargs):
-        context = super(PartyDetailView, self).get_context_data(**kwargs)
-        context['balance'] = self.object.balance
-        transactions = Transaction.objects.filter(Q(shares__party=self.object) |
-                                                  Q(paid_by=self.object) |
-                                                  Q(paid_to=self.object)
-                                                  ).order_by('-paid_at'
-                                                  ).distinct()
-        context['recent_transactions'] = transactions
-        return context
-
-
-class CategoryDetailView(GroupRelatedDetailView):
-    model = Category
-    template_name = 'argus/category_detail.html'
-
-    def get(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        if _group_auth_needed(request, self.object.group):
-            return _group_auth_redirect(self.object.group)
-        context = self.get_context_data(object=self.object)
-        return self.render_to_response(context)
-
-    def get_context_data(self, **kwargs):
-        context = super(CategoryDetailView, self).get_context_data(**kwargs)
-        transactions = self.object.transactions.all()
-        context['balance'] = transactions.aggregate(models.Sum('amount')
-                                                    )['amount__sum']
-        transactions = transactions.order_by('-paid_at')
-        context['recent_transactions'] = transactions
-        return context
-
-
-class BaseTransactionCreateView(CreateView):
-    template_name = 'argus/transaction_create.html'
-
-    def dispatch(self, request, *args, **kwargs):
-        if request.method.lower() in self.http_method_names:
-            try:
-                self.group = Group.objects.get(slug=kwargs['group_slug'])
-            except Group.DoesNotExist:
-                raise Http404
-            if _group_auth_needed(request, self.group):
-                return _group_auth_redirect(self.group)
-        return super(BaseTransactionCreateView, self).dispatch(request, *args,
-                                                           **kwargs)
-
-    def get_form_kwargs(self):
-        kwargs = super(BaseTransactionCreateView, self).get_form_kwargs()
-        kwargs['group'] = self.group
-        return kwargs
-
-    def get_context_data(self, **kwargs):
-        context = super(BaseTransactionCreateView, self).get_context_data(**kwargs)
-        context['group'] = self.group
-        return context
-
-    def get_success_url(self):
-        return self.group.get_absolute_url()
-
-
-class SimpleSplitCreateView(BaseTransactionCreateView):
-    form_class = SimpleSplitForm
-
-
-class EvenSplitCreateView(BaseTransactionCreateView):
-    form_class = EvenSplitForm
-
-
-class ManualSplitCreateView(BaseTransactionCreateView):
-    form_class = ManualSplitForm
