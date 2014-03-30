@@ -1,6 +1,6 @@
 {% extends "argus/layouts/75_25.html" %}
 
-{% block title %}{{ group.name }} – {{block.super }}{% endblock %}
+{% block title %}{{ group.name|default:group.slug }} – {{block.super }}{% endblock %}
 
 {% block navbar-collapse %}
 	<ul class="nav navbar-nav">

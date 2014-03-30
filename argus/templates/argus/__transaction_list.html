@@ -5,37 +5,11 @@
 {% block main %}
 	<h2>Record a New Expense</h2>
 
-	<!-- Nav tabs -->
-	<ul class="nav nav-tabs nav-justified">
-		<li class="active"><a href="#simple" data-toggle="tab">Simple transaction</a></li>
-		<li><a href="#even" data-toggle="tab">Even split</a></li>
-		<li><a href="#manual" data-toggle="tab">Manual split</a></li>
-	</ul>
-
-	<!-- Tab panes -->
-	<div class="tab-content">
-		<div class="tab-pane active" id="simple">
-			<form action="" method="post">
-				{% csrf_token %}
-				{% form forms.simple_form %}
-				<button type='submit'>Create transaction</button>
-			</form>
-		</div>
-		<div class="tab-pane" id="even">
-			<form action="" method="post">
-				{% csrf_token %}
-				{% form forms.even_form %}
-				<button type='submit'>Create transaction</button>
-			</form>
-		</div>
-		<div class="tab-pane" id="manual">
-			<form action="" method="post">
-				{% csrf_token %}
-				{% form forms.manual_form %}
-				<button type='submit'>Create transaction</button>
-			</form>
-		</div>
-	</div>
+	<form action="" method="post">
+		{% csrf_token %}
+		{% form form %}
+		<button type='submit'>Create transaction</button>
+	</form>
 
 	<table class="table">
 		<thead>

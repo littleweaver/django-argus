@@ -15,8 +15,7 @@ from django.views.generic.edit import BaseUpdateView
 
 from argus.forms import (GroupForm, GroupAuthenticationForm,
                          GroupChangePasswordForm, GroupRelatedForm,
-                         SimpleSplitForm, EvenSplitForm,
-                         ManualSplitForm, GroupCreateFormSet)
+                         TransactionForm, GroupCreateFormSet)
 from argus.models import Party, Group, Transaction, Category
 from argus.tokens import token_generators
 from argus.utils import login, logout
@@ -225,11 +224,11 @@ class TransactionFormMixin(object):
     def get_group(self):
         return get_object_or_404(Group, slug=self.kwargs['group_slug'])
 
-    def get_transaction_forms(self, pk=None):
+    def get_transaction_form(self, pk=None):
         if pk:
             self.transaction = get_object_or_404(Transaction, pk=pk)
         else:
-            self.transaction = Transaction()
+            self.transaction = None
         kwargs = {
             'group': self.group,
             'instance': self.transaction,
@@ -237,36 +236,30 @@ class TransactionFormMixin(object):
         if self.request.method == 'POST':
             kwargs['data'] = self.request.POST
 
-        forms = {
-            'simple_form': SimpleSplitForm(prefix='simple', **kwargs),
-            'even_form': EvenSplitForm(prefix='even', **kwargs),
-            'manual_form': ManualSplitForm(prefix='manual', **kwargs)
-        }
-        return forms
+        return TransactionForm(**kwargs)
 
     def get_context_data(self, **kwargs):
         context = super(TransactionFormMixin, self).get_context_data(**kwargs)
-        forms = self.get_transaction_forms()
-        context['forms'] = forms
+        form = self.get_transaction_form()
+        context['form'] = form
         context['group'] = self.group
         return context
 
     def post(self, request, *args, **kwargs):
         context = self.get_context_data(**kwargs)
-        forms = context['forms']
-        for form in forms:
-            if form.is_valid():
-                form.save()
-                return HttpResponseRedirect(self.group.get_absolute_url())
+        form = context['form']
+        if form.is_valid():
+            form.save()
+            return HttpResponseRedirect(self.group.get_absolute_url())
         return self.render_to_response(context)
 
 
 class TransactionUpdateView(TransactionFormMixin, TemplateView):
     template_name = 'argus/transaction_update.html'
 
-    def get_transaction_forms(self, pk=None):
+    def get_transaction_form(self, pk=None):
         pk = self.kwargs['pk']
-        return super(TransactionUpdateView, self).get_transaction_forms(pk)
+        return super(TransactionUpdateView, self).get_transaction_form(pk)
 
 
 class TransactionListView(TransactionFormMixin, TemplateView):

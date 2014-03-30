@@ -195,23 +195,19 @@ class GroupRelatedForm(forms.ModelForm):
 
 
 class TransactionForm(forms.ModelForm):
+    sharers = forms.ModelMultipleChoiceField(Party)
+
     class Meta:
         model = Transaction
-        exclude = ('split',)
         widgets = {
-            'paid_by': forms.Select,
-            'paid_to': forms.Select,
-            'memo': forms.TextInput,
             'amount': forms.NumberInput(attrs={'step': 0.01}),
-            'paid_at': forms.SplitDateTimeWidget,
-            'category': forms.Select,
-            'notes': forms.Textarea,
+            'sharers': forms.CheckboxSelectMultiple,
+            'split': forms.RadioSelect,
         }
 
-    def __init__(self, group, split=Transaction.SIMPLE, *args, **kwargs):
+    def __init__(self, group, *args, **kwargs):
         super(TransactionForm, self).__init__(*args, **kwargs)
         self.group = group
-        self.split = split
 
         self.fields['category'].queryset = group.categories.all()
         self.fields['category'].initial = group.default_category_id
@@ -219,71 +215,10 @@ class TransactionForm(forms.ModelForm):
         self.members = group.parties.filter(party_type=Party.MEMBER)
         self.fields['paid_by'].queryset = self.members
         self.fields['paid_by'].empty_label = None
-        self.fields['paid_to'].queryset = self.group.parties.all()
+        self.fields['paid_to'].queryset = group.parties.all()
+        self.fields['sharers'].queryset = self.members
+        self.initial['sharers'] = self.members
 
-    def clean(self):
-        cleaned_data = super(TransactionForm, self).clean()
-        if cleaned_data['paid_by'] == cleaned_data['paid_to']:
-            raise forms.ValidationError("A party cannot pay themselves.")
-        return cleaned_data
-
-    def _post_clean(self):
-        super(TransactionForm, self)._post_clean()
-        self.instance.split = self.split
-
-
-class SimpleSplitForm(TransactionForm):
-    def __init__(self, *args, **kwargs):
-        super(SimpleSplitForm, self).__init__(split=Transaction.SIMPLE,
-                                              *args, **kwargs)
-        self.fields['paid_to'].empty_label = None
-
-    def save(self):
-        instance = super(SimpleSplitForm, self).save()
-        if not instance.paid_to.is_member():
-            Share.objects.create(
-                transaction=instance,
-                party=instance.paid_by,
-                numerator=1,
-                denominator=1,
-                amount=instance.amount)
-        return instance
-
-
-class EvenSplitForm(TransactionForm):
-    among = forms.ModelMultipleChoiceField(Party,
-                                           widget=forms.CheckboxSelectMultiple)
-
-    def __init__(self, *args, **kwargs):
-        super(EvenSplitForm, self).__init__(split=Transaction.EVEN,
-                                            *args, **kwargs)
-        self.fields['among'].queryset = self.members
-        self.fields['among'].empty_label = None
-        self.initial['among'] = self.members
-
-    def clean(self):
-        cleaned_data = super(EvenSplitForm, self).clean()
-        if cleaned_data['paid_to'] in cleaned_data['among']:
-            raise forms.ValidationError("A member cannot share in a payment "
-                                        "to themselves.")
-        return cleaned_data
-
-    def save(self):
-        instance = super(EvenSplitForm, self).save()
-        Share.objects.create_split(instance,
-                                   [(member, 1)
-                                    for member in self.cleaned_data['among']])
-        return instance
-
-
-class ManualSplitForm(TransactionForm):
-    split = forms.ChoiceField(widget=forms.RadioSelect,
-                              choices=((Transaction.PERCENT, _('Percent')),
-                                       (Transaction.AMOUNT, _('Amount')),
-                                       (Transaction.SHARES, _('Shares'))))
-
-    def __init__(self, *args, **kwargs):
-        super(ManualSplitForm, self).__init__(*args, **kwargs)
         for member in self.members:
             field = forms.DecimalField(decimal_places=2, min_value=0,
                                        initial=0, label=member.name)
@@ -291,31 +226,51 @@ class ManualSplitForm(TransactionForm):
             self.fields['member{}'.format(member.pk)] = field
 
     def clean(self):
-        cleaned_data = super(ManualSplitForm, self).clean()
+        cleaned_data = super(TransactionForm, self).clean()
         split = cleaned_data['split']
-        amounts = [cleaned_data['member{}'.format(member.pk)]
-                   for member in self.members
-                   if cleaned_data['member{}'.format(member.pk)]]
-        cleaned_total = sum(amounts)
-        if split == Transaction.PERCENT:
-            if cleaned_total != 100:
-                raise forms.ValidationError("Percentages must add up to "
-                                            "100.00%.")
-        if split == Transaction.AMOUNT:
-            if cleaned_total != cleaned_data['amount']:
-                raise forms.ValidationError("Share amounts must add up to "
-                                            "total cost.")
+        if cleaned_data['paid_by'] == cleaned_data['paid_to']:
+            raise forms.ValidationError("A party cannot pay themselves.")
+        if cleaned_data['paid_to'] in cleaned_data['sharers']:
+            raise forms.ValidationError("A member cannot share in a payment "
+                                        "to themselves.")
+        if (split == Transaction.SIMPLE and not cleaned_data.get('paid_to')):
+            raise forms.ValidationError("Simple transactions must be paid to "
+                                        "someone.")
+        if (split in (Transaction.PERCENT,
+                      Transaction.AMOUNT,
+                      Transaction.SHARES)):
+            amounts = [cleaned_data['member{}'.format(member.pk)]
+                       for member in self.members
+                       if cleaned_data['member{}'.format(member.pk)]]
+            cleaned_total = sum(amounts)
+            if split == Transaction.PERCENT:
+                if cleaned_total != 100:
+                    raise forms.ValidationError("Percentages must add up to "
+                                                "100.00%.")
+            if split == Transaction.AMOUNT:
+                if cleaned_total != cleaned_data['amount']:
+                    raise forms.ValidationError("Share amounts must add up to "
+                                                "total cost.")
+
         return cleaned_data
 
-    def _post_clean(self):
-        super(ManualSplitForm, self)._post_clean()
-        self.instance.split = self.cleaned_data['split']
-
     def save(self):
-        instance = super(ManualSplitForm, self).save()
-        cd = self.cleaned_data
-        member_numerators = [(member, cd['member{}'.format(member.pk)] * 100)
-                             for member in self.members
-                             if cd['member{}'.format(member.pk)]]
-        Share.objects.create_split(instance, member_numerators)
+        instance = super(TransactionForm, self).save()
+        if instance.split == Transaction.SIMPLE:
+            if not instance.paid_to.is_member():
+                Share.objects.create(
+                    transaction=instance,
+                    party=instance.paid_by,
+                    numerator=1,
+                    denominator=1,
+                    amount=instance.amount)
+        elif instance.split == Transaction.EVEN:
+            shares = [(member, 1) for member in self.cleaned_data['sharers']]
+            Share.objects.create_split(instance, shares)
+        else:
+            cd = self.cleaned_data
+            member_numerators = [(member, cd['member{}'.format(member.pk)] * 100)
+                                 for member in self.members
+                                 if cd['member{}'.format(member.pk)]]
+            Share.objects.create_split(instance, member_numerators)
         return instance
