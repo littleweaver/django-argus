@@ -230,15 +230,18 @@ class TransactionForm(forms.ModelForm):
         split = cleaned_data['split']
         if cleaned_data['paid_by'] == cleaned_data['paid_to']:
             raise forms.ValidationError("A party cannot pay themselves.")
-        if cleaned_data['paid_to'] in cleaned_data['sharers']:
-            raise forms.ValidationError("A member cannot share in a payment "
-                                        "to themselves.")
-        if (split == Transaction.SIMPLE and not cleaned_data.get('paid_to')):
-            raise forms.ValidationError("Simple transactions must be paid to "
-                                        "someone.")
-        if (split in (Transaction.PERCENT,
-                      Transaction.AMOUNT,
-                      Transaction.SHARES)):
+        if split == Transaction.SIMPLE:
+            if not cleaned_data.get('paid_to'):
+                raise forms.ValidationError("Simple transactions must be paid "
+                                            "to someone.")
+        elif split == Transaction.EVEN:
+            if cleaned_data['paid_to'] in cleaned_data['sharers']:
+                raise forms.ValidationError("A member cannot share in a "
+                                            "payment to themselves.")
+        else:
+            if cleaned_data.get('member{}'.format(cleaned_data['paid_to'].pk)):
+                raise forms.ValidationError("A member cannot share in a "
+                                            "payment to themselves.")
             amounts = [cleaned_data['member{}'.format(member.pk)]
                        for member in self.members
                        if cleaned_data['member{}'.format(member.pk)]]
