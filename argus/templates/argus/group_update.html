@@ -9,7 +9,7 @@
 		{% csrf_token %}
 		<small>Note: changing the slug changes your group URL, so you will not be able to hit "back."</small>
 		{% form form %}
-		<button type="submit">Save changes</button>
+		<button class='btn' type="submit">Save changes</button>
 	</form>
 
 	{% if group.confirmed_email %}

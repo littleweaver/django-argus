@@ -10,6 +10,6 @@
 	<form action="{{ request.path }}" method="post">
 		{% csrf_token %}
 		{% form form %}
-		<button type="submit">{% if category.pk %}Save changes{% else %}Add category{% endif %}</button>
+		<button class='btn' type="submit">{% if category.pk %}Save changes{% else %}Add category{% endif %}</button>
 	</form>
 {% endblock %}

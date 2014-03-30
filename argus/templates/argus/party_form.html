@@ -10,6 +10,6 @@
 	<form action="{{ request.path }}" method="post">
 		{% csrf_token %}
 		{% form form %}
-		<button type="submit">{% if party.pk %}Save changes{% else %}Add party{% endif %}</button>
+		<button class='btn' type="submit">{% if party.pk %}Save changes{% else %}Add party{% endif %}</button>
 	</form>
 {% endblock main %}
