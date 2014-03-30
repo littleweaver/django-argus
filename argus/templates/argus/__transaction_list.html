@@ -8,7 +8,7 @@
 	<form action="" method="post">
 		{% csrf_token %}
 		{% form form %}
-		<button type='submit'>Create transaction</button>
+		<button class='btn' type='submit'>Create transaction</button>
 	</form>
 
 	<table class="table">
@@ -21,6 +21,7 @@
 				<th>Amount ({{ group.currency }})</th>
 				{% if not category %}<th>Category</th>{% endif %}
 				<th>Sharers</th>
+				<th></th>
 			</tr>
 		</thead>
 		<tbody>
@@ -41,6 +42,7 @@
 							{% endfor %}
 						{% endfor %}
 					</td>
+					<td><a href="{% url 'argus_transaction_update' group_slug=group.slug pk=transaction.pk %}"><i class='glyphicon glyphicon-pencil'></i></a></td>
 				</tr>
 			{% endfor %}
 		</tbody>

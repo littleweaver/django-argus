@@ -223,7 +223,13 @@ class TransactionForm(forms.ModelForm):
             field = forms.DecimalField(decimal_places=2, min_value=0,
                                        initial=0, label=member.name)
             field.member = member
+            field.widget.attrs['step'] = 0.01
             self.fields['member{}'.format(member.pk)] = field
+
+        if self.instance.pk and self.instance.is_manual():
+            for share in self.instance.shares.all():
+                field = 'member{}'.format(share.party_id)
+                self.fields[field].initial = float(share.numerator) / 100
 
     def clean(self):
         cleaned_data = super(TransactionForm, self).clean()
@@ -258,7 +264,10 @@ class TransactionForm(forms.ModelForm):
         return cleaned_data
 
     def save(self):
+        created = not self.instance.pk
         instance = super(TransactionForm, self).save()
+        if not created:
+            instance.shares.all().delete()
         if instance.split == Transaction.SIMPLE:
             if not instance.paid_to.is_member():
                 Share.objects.create(

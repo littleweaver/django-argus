@@ -196,6 +196,9 @@ class Transaction(models.Model):
     def __unicode__(self):
         return u"{} ({})".format(smart_text(self.memo), self.amount)
 
+    def is_manual(self):
+        return self.split in (self.PERCENT, self.AMOUNT, self.SHARES)
+
 
 class ShareManager(models.Manager):
     def create_split(self, transaction, member_numerators):

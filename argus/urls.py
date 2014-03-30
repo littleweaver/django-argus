@@ -76,5 +76,5 @@ urlpatterns = patterns('',
 
     url(r'^(?P<group_slug>{})/transaction/(?P<pk>\d+)/$'.format(Group.SLUG_REGEX),
         TransactionUpdateView.as_view(),
-        name='argus_transaction'),
+        name='argus_transaction_update'),
 )
