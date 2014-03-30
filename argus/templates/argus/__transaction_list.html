@@ -1,0 +1,74 @@
+{% extends "argus/__group.html" %}
+
+{% load floppyforms %}
+
+{% block main %}
+	<h2>Record a New Expense</h2>
+
+	<!-- Nav tabs -->
+	<ul class="nav nav-tabs nav-justified">
+		<li class="active"><a href="#simple" data-toggle="tab">Simple transaction</a></li>
+		<li><a href="#even" data-toggle="tab">Even split</a></li>
+		<li><a href="#manual" data-toggle="tab">Manual split</a></li>
+	</ul>
+
+	<!-- Tab panes -->
+	<div class="tab-content">
+		<div class="tab-pane active" id="simple">
+			<form action="" method="post">
+				{% csrf_token %}
+				{% form forms.simple_form %}
+				<button type='submit'>Create transaction</button>
+			</form>
+		</div>
+		<div class="tab-pane" id="even">
+			<form action="" method="post">
+				{% csrf_token %}
+				{% form forms.even_form %}
+				<button type='submit'>Create transaction</button>
+			</form>
+		</div>
+		<div class="tab-pane" id="manual">
+			<form action="" method="post">
+				{% csrf_token %}
+				{% form forms.manual_form %}
+				<button type='submit'>Create transaction</button>
+			</form>
+		</div>
+	</div>
+
+	<table class="table">
+		<thead>
+			<tr>
+				<th>Paid at</th>
+				<th>Paid by</th>
+				<th>Paid to</th>
+				<th>Memo</th>
+				<th>Amount ({{ group.currency }})</th>
+				{% if not category %}<th>Category</th>{% endif %}
+				<th>Sharers</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for transaction in recent_transactions|slice:":10" %}
+				<tr>
+					<td>{{ transaction.paid_at|date:"Y-m-d H:i:s" }}</td>
+					<td><a href="{{ transaction.paid_by.get_absolute_url }}">{{ transaction.paid_by.name }}</a></td>
+					<td><a href="{{ transaction.paid_to.get_absolute_url }}">{{ transaction.paid_to.name }}</a></td>
+					<td>{{ transaction.memo }}</td>
+					<td>{{ transaction.amount }}</td>
+					{% if not category %}<td><a href="{{ transaction.category.get_absolute_url }}">{{ transaction.category.name }}</a></td>{% endif %}
+					<td>
+						{% for party in group.parties.all %}
+							{% for share in transaction.shares.all %}
+								{% if share.party_id == party.pk %}
+									<a href="{{ party.get_absolute_url }}" title="{{ share.amount }} ({{ share.percentage }}%)">{{ party.name }}</a>
+								{% endif %}
+							{% endfor %}
+						{% endfor %}
+					</td>
+				</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+{% endblock main %}

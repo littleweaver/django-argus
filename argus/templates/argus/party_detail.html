@@ -1,58 +1,12 @@
-{% extends "argus/__group.html" %}
+{% extends "argus/__transaction_list.html" %}
 
 {% load argus %}
 
-{% block title %}{{ party.name }} – {{ group.name }} – {{block.super }}{% endblock %}
-
-{% block navbar-collapse %}
-  <ul class="nav navbar-nav">
-    <li><a href="{{ group.get_absolute_url }}">{{ group.name|default:group.slug }}</a></li>
-  </ul>
-  <ul class="nav navbar-nav navbar-right">
-    <li><a href="{% url 'argus_group_update' slug=group.slug %}"><span class="glyphicon glyphicon-cog"></span></a></li>
-  </ul>
-{% endblock navbar-collapse %}
+{% block title %}{{ party.name }} – {{block.super }}{% endblock %}
 
 
 {% block main %}
-  <pre>Name: {{ party.name }}</pre>
-  <pre>Group: <a href="{{ group.get_absolute_url }}">{{ group }}</a></pre>
-  <pre>Balance: {{ balance }} or {{ party.balance }}</pre>
+	<h1>{{ party.name }} <small>{% if balance < 0 %}Owed{% else %}Owes{% endif %} ${{ balance|abs }}</small> <small><a href="{% url 'argus_party_update' group_slug=group.slug pk=party.pk %}">Edit party</a></small></h1>
 
-  <h1>{{ party.name }}</h1>
-  <h3>{% if party.balance < 0 %}Owed{% else %}Owes{% endif %} ${{ party.balance|abs }}</h3>
-  <p><a href="{% url 'argus_party_update' group_slug=group.slug pk=party.pk %}">Edit party</a></p>
-
-  <table class="table">
-    <thead>
-      <tr>
-        <th>Paid at</th>
-        <th>Paid by</th>
-        <th>Paid to</th>
-        <th>Memo</th>
-        <th>Total cost ({{ group.currency }})</th>
-        <th>Category</th>
-        <th>Share of cost</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for transaction in recent_transactions|slice:":10" %}
-        <tr>
-          <td>{{ transaction.paid_at|date:"Y-m-d H:i:s" }}</td>
-          <td><a href="{{ transaction.paid_by.get_absolute_url }}">{{ transaction.paid_by.name }}</a></td>
-          <td><a href="{{ transaction.paid_to.get_absolute_url }}">{{ transaction.paid_to.name }}</a></td>
-          <td>{{ transaction.memo }}</td>
-          <td>{{ transaction.amount }}</td>
-          <td><a href="{{ transaction.category.get_absolute_url }}">{{ transaction.category }}</a></td>
-          <td>
-            {% for share in transaction.shares.all %}
-              {% if share.party == party %}
-                {{ share.amount }} ({{ share.percentage }})
-              {% endif %}
-            {% endfor %}
-          </td>
-        </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+	{{ block.super }}
 {% endblock main %}

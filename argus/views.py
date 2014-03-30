@@ -296,7 +296,9 @@ class GroupDetailView(TransactionListView):
 class GroupRelatedDetailView(TransactionListView):
     def get_group(self):
         group = super(GroupRelatedDetailView, self).get_group()
-        self.object = get_object_or_404(self.model, group=group)
+        self.object = get_object_or_404(self.model,
+                                        group=group,
+                                        pk=self.kwargs['pk'])
         return group
 
     def get_context_data(self, **kwargs):

@@ -1,44 +1,11 @@
-{% extends "argus/__group.html" %}
+{% extends "argus/__transaction_list.html" %}
 
-{% block title %}{{ category.name }} – {{ group.name }} – {{block.super }}{% endblock %}
+{% load argus %}
 
-{% block navbar-collapse %}
-  <ul class="nav navbar-nav">
-    <li><a href="{{ group.get_absolute_url }}">{{ group.name|default:group.slug }}</a></li>
-  </ul>
-  <ul class="nav navbar-nav navbar-right">
-    <li><a href="{% url 'argus_group_update' slug=group.slug %}"><span class="glyphicon glyphicon-cog"></span></a></li>
-  </ul>
-{% endblock navbar-collapse %}
-
+{% block title %}{{ category.name }} – {{block.super }}{% endblock %}
 
 {% block main %}
-<pre>Name: {{ category.name }}</pre>
-<pre>Group: <a href="{{ group.get_absolute_url }}">{{ group }}</a></pre>
-<pre>Total transaction: {{ total_transaction }}</pre>
+	<h1>{{ category.name }} <small>${{ balance|abs }}</small> <small><a href="{% url 'argus_category_update' group_slug=group.slug pk=category.pk %}">Edit category</a></small></h1>
 
-<p><a href="{% url 'argus_category_update' group_slug=group.slug pk=category.pk %}">Edit category</a></p>
-
-<table class="table">
-	<thead>
-		<tr>
-			<th>Paid at</th>
-			<th>Paid by</th>
-			<th>Paid to</th>
-			<th>Memo</th>
-			<th>Cost ({{ group.currency }})</th>
-		</tr>
-	</thead>
-	<tbody>
-		{% for transaction in recent_transactions|slice:":10" %}
-			<tr>
-				<td>{{ transaction.paid_at|date:"Y-m-d H:i:s" }}</td>
-				<td><a href="{{ transaction.paid_by.get_absolute_url }}">{{ transaction.paid_by.name }}</a></td>
-				<td><a href="{{ transaction.paid_to.get_absolute_url }}">{{ transaction.paid_to.name }}</a></td>
-				<td>{{ transaction.memo }}</td>
-				<td>{{ transaction.amount }}</td>
-			</tr>
-		{% endfor %}
-	</tbody>
-</table>
+	{{ block.super }}
 {% endblock main %}
