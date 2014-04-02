@@ -1,8 +1,10 @@
-{% extends "argus/__group.html" %}
+{% extends "argus/__base.html" %}
 
 {% load floppyforms %}
 
-{% block main %}
+{% block title %}{{ group.name|default:group.slug }} Login – {{block.super }}{% endblock %}
+
+{% block content %}
 	<h1>Log in to {{ group.name|default:group.slug }}</h1>
 
 	<form action="{{ request.path }}" method="post">
@@ -12,4 +14,4 @@
 	</form>
 
 	{% if group.confirmed_email %}<a href="{% url 'argus_group_password_reset' slug=group.slug %}">Send password reset email</a>{% endif %}
-{% endblock main %}
+{% endblock content %}
