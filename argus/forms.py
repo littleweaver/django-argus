@@ -237,6 +237,11 @@ class TransactionForm(forms.ModelForm):
                 field = 'member{}'.format(share.party_id)
                 self.fields[field].initial = float(share.numerator) / 100
 
+    def member_fields(self):
+        "Return fields used for specifying member split."
+        return [field for field in self
+                if field.name.startswith("member")]
+
     def clean(self):
         cleaned_data = super(TransactionForm, self).clean()
         split = cleaned_data['split']
