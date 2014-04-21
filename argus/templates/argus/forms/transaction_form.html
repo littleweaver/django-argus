@@ -1,6 +1,6 @@
 {% load floppyforms %}
 
-<form action="" method="post">
+<form action="" method="post" data-form="transaction">
 	{% csrf_token %}
 	<div class="row">
 		<div class="col-md-4">
@@ -21,18 +21,37 @@
 			{% formrow form.category %}
 		</div>
 	</div>
+
+	<div class="transaction-sharers collapse">
+		{% formrow form.sharers %}
+	</div>
+
+	<div class="transaction-split collapse">
+		{% for field in form.member_fields %}
+			{% formrow field %}
+		{% endfor %}
+	</div>
+
+	<div class="well">
+		<p><a href="#transaction-options" data-toggle="collapse">Options</a></p>
+		<div class="collapse" id="transaction-options">
+			<div class="row">
+				<div class="col-md-6">
+					{% formrow form.notes %}
+				</div>
+				<div class="col-md-6">
+					{% formrow form.paid_at %}
+				</div>
+			</div>
+		</div>
+	</div>
+
 	<div class="panel panel-default">
 		<div class="panel-heading">
-			<h4 class="panel-title">Advanced</h4>
+			Hidden Options
 		</div>
 		<div class="panel-body">
-			{% formrow form.paid_at %}
-			{% formrow form.sharers %}
 			{% formrow form.split %}
-			{% for field in form.member_fields %}
-				{% formrow field %}
-			{% endfor %}
-			{% formrow form.notes %}
 		</div>
 	</div>
 	<button class='btn' type='submit'>Create transaction</button>
