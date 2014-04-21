@@ -1,0 +1,39 @@
+{% load floppyforms %}
+
+<form action="" method="post">
+	{% csrf_token %}
+	<div class="row">
+		<div class="col-md-4">
+			{% formrow form.paid_by %}
+		</div>
+		<div class="col-md-4">
+			{% formrow form.paid_to %}
+		</div>
+		<div class="col-md-4">
+			{% formrow form.amount %}
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-md-6">
+			{% formrow form.memo %}
+		</div>
+		<div class="col-md-6">
+			{% formrow form.category %}
+		</div>
+	</div>
+	<div class="panel panel-default">
+		<div class="panel-heading">
+			<h4 class="panel-title">Advanced</h4>
+		</div>
+		<div class="panel-body">
+			{% formrow form.paid_at %}
+			{% formrow form.sharers %}
+			{% formrow form.split %}
+			{% for field in form.member_fields %}
+				{% formrow field %}
+			{% endfor %}
+			{% formrow form.notes %}
+		</div>
+	</div>
+	<button class='btn' type='submit'>Create transaction</button>
+</form>

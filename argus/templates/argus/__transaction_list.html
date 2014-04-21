@@ -5,11 +5,7 @@
 {% block main %}
 	<h2>Record a New Expense</h2>
 
-	<form action="" method="post">
-		{% csrf_token %}
-		{% form form %}
-		<button class='btn' type='submit'>Create transaction</button>
-	</form>
+	{% include "argus/forms/transaction_form.html" %}
 
 	<table class="table">
 		<thead>
