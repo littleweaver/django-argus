@@ -209,7 +209,7 @@ class TransactionForm(forms.ModelForm):
             'notes': forms.Textarea,
             'split': forms.RadioSelect,
             'sharers': forms.CheckboxSelectMultiple,
-     }
+        }
 
     def __init__(self, group, *args, **kwargs):
         super(TransactionForm, self).__init__(*args, **kwargs)
