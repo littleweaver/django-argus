@@ -200,10 +200,16 @@ class TransactionForm(forms.ModelForm):
     class Meta:
         model = Transaction
         widgets = {
+            'paid_by': forms.Select,
+            'paid_to': forms.Select,
+            'memo': forms.TextInput,
             'amount': forms.NumberInput(attrs={'step': 0.01}),
-            'sharers': forms.CheckboxSelectMultiple,
+            'paid_at': forms.DateTimeInput,
+            'category': forms.Select,
+            'notes': forms.Textarea,
             'split': forms.RadioSelect,
-        }
+            'sharers': forms.CheckboxSelectMultiple,
+     }
 
     def __init__(self, group, *args, **kwargs):
         super(TransactionForm, self).__init__(*args, **kwargs)

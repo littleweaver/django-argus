@@ -18,6 +18,7 @@
 		
 		{% block stylesheets %}
 			<link rel="stylesheet" type="text/css" href="{% static "argus/css/styles.css" %}" />
+			<link rel="stylesheet" type="text/css" href="{% static "argus/lib/chosen/chosen.min.css" %}" />
 		{% endblock %}
 
 	</head>
@@ -69,6 +70,8 @@
 			<script src="{% static "argus/js/bootstrap/transition.js" %}"></script>
 			<script src="{% static "argus/js/bootstrap/collapse.js" %}"></script>
 			<script src="{% static "argus/js/bootstrap/tab.js" %}"></script>
+			<script src="{% static "argus/lib/chosen/chosen.jquery.min.js" %}"></script>
+			<script src="{% static "argus/js/app.js" %}"></script>
 		{% endblock %}
 	</body>
 </html>

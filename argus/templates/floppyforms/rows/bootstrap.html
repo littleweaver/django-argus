@@ -5,7 +5,6 @@
 			{% if field|id %}<label class="control-label" for="{{ field|id }}">{% endif %}
 			{{ label }}
 			{% if field.field.required %} <span class="required">*</span>{% endif %}
-			{% if label|last not in ".:!?" %}:{% endif %}
 			{% if field|id %}</label>{% endif %}
 		{% endblock %}
 		{% block field %}
