@@ -32,9 +32,17 @@
 		{% endfor %}
 	</div>
 
-	<div class="well">
-		<p><a href="#transaction-options" data-toggle="collapse">Options</a></p>
-		<div class="collapse" id="transaction-options">
+	<div class="panel panel-default">
+		<div class="panel-heading">
+			Hidden Options
+		</div>
+		<div class="panel-body">
+			{% formrow form.split %}
+		</div>
+	</div>
+
+	<div class="collapse" id="transaction-options">
+		<div class="well">
 			<div class="row">
 				<div class="col-md-6">
 					{% formrow form.notes %}
@@ -46,13 +54,6 @@
 		</div>
 	</div>
 
-	<div class="panel panel-default">
-		<div class="panel-heading">
-			Hidden Options
-		</div>
-		<div class="panel-body">
-			{% formrow form.split %}
-		</div>
-	</div>
-	<button class='btn' type='submit'>Create transaction</button>
+	<button class='btn btn-primary' type='submit'>Create transaction</button>
+	<a class="btn btn-link" href="#transaction-options" data-toggle="collapse">Options</a>
 </form>
