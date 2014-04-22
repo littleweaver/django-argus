@@ -297,3 +297,48 @@ class TransactionForm(forms.ModelForm):
                                  if cd['member{}'.format(member.pk)]]
             Share.objects.create_split(instance, member_numerators)
         return instance
+
+class PaymentForm(forms.ModelForm):
+
+    def __init__(self, group, *args, **kwargs):
+        super(PaymentForm, self).__init__(*args, **kwargs)
+        self.group = group
+        self.fields['category'].queryset = group.categories.all()
+        self.fields['category'].initial = group.default_category_id
+        self.members = group.parties.filter(party_type=Party.MEMBER)
+        self.fields['paid_by'].queryset = self.members
+        self.fields['paid_to'].queryset = self.members
+        self.fields['paid_to'].required = True
+        self.fields['paid_by'].empty_label = None
+        self.fields['paid_by'].empty_label = None
+
+    def save(self):
+        created = not self.instance.pk
+        instance = super(TransactionForm, self).save(commit=False)
+        instance.split = Transaction.SIMPLE
+        instance.save()
+        if not created:
+            instance.shares.all().delete()
+        if not instance.paid_to.is_member():
+            Share.objects.create(
+                transaction=instance,
+                party=instance.paid_by,
+                numerator=1,
+                denominator=1,
+                amount=instance.amount)
+        return instance
+
+
+    class Meta:
+        model = Transaction
+        fields = ("paid_by", "paid_to", "amount", "memo", "category", "notes",
+                  "paid_at")
+        widgets = {
+            'amount': forms.NumberInput(attrs={'step': 0.01}),
+            'memo': forms.TextInput,
+            'paid_by': forms.Select,
+            'paid_to': forms.Select,
+            'category': forms.Select,
+            'notes': forms.Textarea,
+            'paid_at': forms.DateTimeInput,
+        }

@@ -22,25 +22,6 @@
 		</div>
 	</div>
 
-	<div class="transaction-sharers collapse">
-		{% formrow form.sharers %}
-	</div>
-
-	<div class="transaction-split collapse">
-		{% for field in form.member_fields %}
-			{% formrow field %}
-		{% endfor %}
-	</div>
-
-	<div class="panel panel-default">
-		<div class="panel-heading">
-			Hidden Options
-		</div>
-		<div class="panel-body">
-			{% formrow form.split %}
-		</div>
-	</div>
-
 	<div class="collapse" id="{% if form.prefix %}{{form.prefix}}-{% endif %}transaction-options">
 		<div class="well">
 			<div class="row">
@@ -54,6 +35,6 @@
 		</div>
 	</div>
 
-	<button class='btn btn-primary' type='submit'>Create Expense</button>
+	<button class='btn btn-primary' type='submit'>Create Payment</button>
 	<a class="btn btn-link" href="#{% if form.prefix %}{{form.prefix}}-{% endif %}transaction-options" data-toggle="collapse">Options</a>
 </form>

@@ -3,9 +3,19 @@
 {% load floppyforms %}
 
 {% block main %}
-	<h2>Record a New Expense</h2>
+	<ul class="nav nav-tabs margin-trailer">
+		<li class="active"><a href="#expense-tab" data-toggle="tab">New Expense</a></li>
+		<li><a href="#payment-tab" data-toggle="tab">New Member to Member Payment</a></li>
+	</ul>
 
-	{% include "argus/forms/transaction_form.html" %}
+	<div class="tab-content">
+		<div class="tab-pane active" id="expense-tab">
+			{% include "argus/forms/transaction_form.html" with form=expense_form only %}
+		</div>
+		<div class="tab-pane" id="payment-tab">
+			{% include "argus/forms/payment_form.html" with form=payment_form only%}
+		</div>
+	</div>
 
 	<table class="table">
 		<thead>

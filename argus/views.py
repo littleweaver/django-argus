@@ -7,15 +7,15 @@ from django.db import models
 from django.db.models import Q
 from django.forms.models import modelform_factory
 from django.http import Http404, HttpResponseRedirect
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, render
 from django.template import loader
 from django.views.generic import (DetailView, TemplateView, RedirectView,
-                                  UpdateView, FormView, CreateView)
+                                  UpdateView, FormView, CreateView, View)
 from django.views.generic.edit import BaseUpdateView
 
 from argus.forms import (GroupForm, GroupAuthenticationForm,
                          GroupChangePasswordForm, GroupRelatedForm,
-                         TransactionForm, GroupCreateFormSet)
+                         TransactionForm, GroupCreateFormSet, PaymentForm)
 from argus.models import Party, Group, Transaction, Category
 from argus.tokens import token_generators
 from argus.utils import login, logout
@@ -282,8 +282,21 @@ class TransactionListView(TransactionFormMixin, TemplateView):
         return context
 
 
-class GroupDetailView(TransactionListView):
+class GroupDetailView(View):
     template_name = 'argus/group_detail.html'
+
+    def get(self, request, group_slug):
+        qs = Group.objects.prefetch_related('parties', 'categories')
+        group = get_object_or_404(qs, slug=group_slug)
+
+        context = {
+            'group': group,
+            'members': [p for p in group.parties.all() if p.party_type == Party.MEMBER],
+            'expense_form': TransactionForm(group, prefix="expense"),
+            'payment_form': PaymentForm(group, prefix="payment"),
+        }
+
+        return render(request, self.template_name, context)
 
 
 class GroupRelatedDetailView(TransactionListView):
