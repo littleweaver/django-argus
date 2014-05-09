@@ -20,6 +20,16 @@ class PartyForm(forms.ModelForm):
 
 
 class BaseGroupCreateFormSet(BaseModelFormSet):
+
+    def __init__(self, *args, **kwargs):
+        # Patch in min_num value. See django ticket #17642
+        # https://code.djangoproject.com/ticket/17642
+        super(BaseGroupCreateFormSet, self).__init__(*args, **kwargs)
+        self.min_num = 1
+        self.validate_min = True
+        if self.initial_form_count() == 0:
+            self.extra = 1
+
     def clean(self):
         super(BaseGroupCreateFormSet, self).clean()
         filled = sum([1 if form.cleaned_data else 0
@@ -51,7 +61,7 @@ GroupCreateFormSet = modelformset_factory(
     Party,
     form=PartyForm,
     formset=BaseGroupCreateFormSet,
-    extra=3,
+    extra=0,
     fields=('name',))
 
 
