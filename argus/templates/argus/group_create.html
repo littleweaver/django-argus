@@ -4,18 +4,6 @@
 
 {% block javascripts %}
 	{{ block.super }}
-	<script type="text/javascript">
-		window.django = {
-			jQuery: jQuery
-		};
-		jQuery(function () {
-			$('#create-form .form-group').formset({
-				emptyCssClass: 'hidden',
-				formsetContainer: '#formset-container'
-			});
-		});
-	</script>
-	<script src="{% static "argus/js/formset.js" %}"></script>
 {% endblock %}
 
 {% block left %}
