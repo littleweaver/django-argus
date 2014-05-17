@@ -5,17 +5,26 @@
 {% block javascripts %}
 	{{ block.super }}
 	<script type="text/javascript">
-		window.django = {
-			jQuery: jQuery
-		};
-		jQuery(function () {
-			$('#create-form .form-group').formset({
-				emptyCssClass: 'hidden',
-				formsetContainer: '#formset-container'
-			});
+		$('.formset-container').formset({
+			formTemplate: "#form-empty",
+			addTrigger: '',
+			deleteTrigger: "<a href='#'><i class='glyphicon glyphicon-remove'></i> Remove</a>",
+			deleteWrapper: 'label',
+			rowSelector: '.form-group',
+			prefix: '{{ form.prefix }}'
+		});
+
+		$('.formset-container').on("keypress", "> .form-group:visible:last input", function (e) {
+			// If a user hits tab while focused on the last input, add a new input and focus on it
+			var keyCode = e.keyCode || e.which;
+			if (keyCode == 9 && !(e.altKey || e.shiftKey || e.ctrlKey || e.metaKey)) {
+				$('.formset-container').formset('add');
+				e.preventDefault();
+				var new_row = $('.formset-container > .form-group:visible:last');
+				new_row.find('input').focus();
+			}
 		});
 	</script>
-	<script src="{% static "argus/js/formset.js" %}"></script>
 {% endblock %}
 
 {% block left %}
@@ -33,26 +42,29 @@
 		{% endif %}
 		{{ form.management_form }}
 
-		<div id="formset-container">
+		<div class="formset-container">
 			{% for subform in form.forms %}
 				{% form subform %}
 			{% endfor %}
 		</div>
+		<p class="text-muted">Press tab to add more members.</p>
 
 		<button class="btn btn-primary">Create a group!</button>
 	</form>
 
 	{# Form template placed outside of <form> to prevent browser-side validation errors when submitting. #}
-	{% form form.empty_form using %}
-		{% for field in form.visible_fields %}
-			<div id="form-empty" class="control-group hidden">
-				<label class="control-label" for="{{ field|id }}">{{ field.label }}{% if field.field.required %} <span class="required">*</span>{% endif %}{% if field.label|last not in ".:!?" %}:{% endif %}</label>
-				<div class="controls {{ classes }} field-{{ field.name }}">
-					{% formfield field %}
+	<div class="hidden">
+		{% form form.empty_form using %}
+			{% for field in form.visible_fields %}
+				<div id="form-empty" class="form-group">
+					<label class="control-label" for="{{ field|id }}">{{ field.label }}{% if field.field.required %} <span class="required">*</span>{% endif %}{% if field.label|last not in ".:!?" %}:{% endif %}</label>
+					<div class="controls {{ classes }} field-{{ field.name }}">
+						{% formfield field %}
+					</div>
 				</div>
-			</div>
-		{% endfor %}
-	{% endform %}
+			{% endfor %}
+		{% endform %}
+	</div>
 
 {% endblock left %}
 
