@@ -1,0 +1,23 @@
+body {
+  background-color: #e1f5ea;
+}
+
+a {
+  color: #a062c4;
+}
+
+.navbar {
+  -webkit-border-radius: 0;
+  -moz-border-radius: 0;
+  -ms-border-radius: 0;
+  -o-border-radius: 0;
+  border-radius: 0;
+}
+
+.panel-default > .panel-heading, .navbar {
+  background-color: #9fe0be;
+}
+
+.panel-default > .panel-body {
+  background-color: #f2fcf7;
+}
