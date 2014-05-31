@@ -7,13 +7,13 @@
 {% block navbar-title %}Argus{% endblock %}
 
 {% block stylesheets %}
-	{{ block.super }}
+    <link rel="stylesheet" type="text/css" href="{% static "zenaida/lib/chosen/chosen.min.css" %}" />
 	<link rel="stylesheet" type="text/css" href="{% static "argus/css/styles.css" %}" />
 {% endblock stylesheets %}
 
 {% block body-classes %}argus{% endblock %}
 
-{% block navbar-brand %}Zenaida{% endblock %}
+{% block navbar-brand %}Argus{% endblock %}
 
 {% block javascripts %}
 	{{ block.super }}
