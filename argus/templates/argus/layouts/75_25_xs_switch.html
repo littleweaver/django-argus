@@ -3,26 +3,27 @@
 {% block content %}
 	{% block before %}{% endblock %}
 	<div class="row">
-		<div class="col-md-6">
-			{% block left_panel %}
+		<div class="col-md-3 col-md-push-9">
+			{% block side_panel %}
 				<div class="panel panel-default">
 					<div class="panel-body">
-						{% block left %}
+						{% block side %}
 						{% endblock %}
 					</div>
 				</div>
-			{% endblock left_panel %}
+			{% endblock side_panel %}
 		</div>
-		<div class="col-md-6">
-			{% block right_panel %}
+		<div class="col-md-9 col-md-pull-3">
+			{% block main_panel %}
 				<div class="panel panel-default">
 					<div class="panel-body">
-						{% block right %}
+						{% block main %}
 						{% endblock %}
 					</div>
 				</div>
-			{% endblock right_panel %}
+			{% endblock main_panel %}
 		</div>
 	</div>
 	{% block after %}{% endblock %}
 {% endblock %}
+

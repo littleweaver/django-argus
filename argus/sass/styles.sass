@@ -1,2 +1,16 @@
 @import variables
 @import bootstrap
+
+.panel-body:first-child > :first-child
+	margin-top: 0
+
+@media (min-width: $screen-md-min)
+	.nav-stacked-md > li
+		float: none
+
+	.nav-stacked-md > li + li
+		margin-top: 2px
+		margin-left: 0
+
+.nav-pills h4:first-child
+	margin-right: 15px

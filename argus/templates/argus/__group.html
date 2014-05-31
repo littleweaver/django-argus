@@ -1,4 +1,4 @@
-{% extends "argus/layouts/75_25.html" %}
+{% extends "argus/layouts/75_25_xs_switch.html" %}
 
 {% block title %}{{ group.name|default:group.slug }} – {{block.super }}{% endblock %}
 
@@ -14,25 +14,20 @@
 	</ul>
 {% endblock navbar-collapse %}
 
-{% block side %}
+{% block side_panel %}
 	<div class="panel panel-default">
 		<div class="panel-heading">
-			{% if group.password %}
-				<div class="pull-right"><a href="{% url 'argus_group_logout' %}">Logout</a></div>
-			{% endif %}
 			<h3 class="panel-title">{{ group.name|default:group.slug }}</h3>
 		</div>
 		<div class="panel-body">
-			
-
 			{% if not group.password %}
 				<div class="alert alert-warning">
 					This group doesn’t have a password yet! Maybe you just created it. To keep your group’s information safe from snoopers and saboteurs, <a href="{% url 'argus_group_change_password' group.slug %}">protect it with a password</a>.
 				</div>
 			{% endif %}
 
-			<h4>Members</h4>
-			<ul>
+			<ul class="nav nav-pills nav-stacked-md">
+				<li><h4>Members</h4></li>
 				{% for member in members %}
 					<li><a href="{{ member.get_absolute_url }}">{{ member.name }}: {{ member.balance }}</a></li>
 				{% endfor %}
@@ -40,8 +35,8 @@
 			</ul>
 
 			{% with categories=group.categories.all %}
-				<h4>Categories</h4>
-				<ul>
+				<ul class="nav nav-pills nav-stacked-md">
+					<li><h4>Categories</h4></li>
 					{% for category in categories %}
 						<li><a href="{{ category.get_absolute_url }}">{{ category.name }}</a></li>
 					{% endfor %}
@@ -50,5 +45,5 @@
 			{% endwith %}
 		</div>{# /.panel-body #}
 	</div>{# /.panel #}
-{% endblock side %}
+{% endblock side_panel %}
 
