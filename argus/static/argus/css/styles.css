@@ -6339,3 +6339,32 @@ button.close {
   -moz-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(160, 98, 196, 0.6);
   box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(160, 98, 196, 0.6);
 }
+
+.btn-split {
+  padding: 20px 0;
+  color: #fcfbfa;
+}
+.btn-split:hover {
+  color: #f0eeeb;
+}
+
+.btn-split-simple {
+  background-color: #13914f;
+}
+.btn-split-simple:hover {
+  background-color: #0f7c43;
+}
+
+.btn-split-even {
+  background-color: #3742db;
+}
+.btn-split-even:hover {
+  background-color: #232fd5;
+}
+
+.btn-split-manual {
+  background-color: #cf4e3a;
+}
+.btn-split-manual:hover {
+  background-color: #c3412d;
+}

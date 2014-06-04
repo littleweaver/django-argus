@@ -20,3 +20,26 @@
 .form-control:focus
 	border-color: $brand-primary
 	+box-shadow(inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba($brand-primary,0.6))
+
+.btn-split
+	padding: 20px 0
+	color: $white
+	&:hover
+		color: $whitesmoke
+
+
+$color-simple: #13914F
+$color-even: #3742DB
+$color-manual: #CF4E3A
+.btn-split-simple
+	background-color: $color-simple
+	&:hover
+		background-color: saturate(darken($color-simple,5%),2%)
+.btn-split-even
+	background-color: $color-even
+	&:hover
+		background-color: saturate(darken($color-even,5%),2%)
+.btn-split-manual
+	background-color: $color-manual
+	&:hover
+		background-color: saturate(darken($color-manual,5%),2%)
