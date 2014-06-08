@@ -18,6 +18,19 @@
 
 {% block navbar-brand %}Argus{% endblock %}
 
+{% block content %}
+	{% block before %}{% endblock %}
+	{% block main_panel %}
+		<div class="panel panel-default">
+			<div class="panel-body">
+				{% block main %}
+				{% endblock %}
+			</div>
+		</div>
+	{% endblock main_panel %}
+	{% block after %}{% endblock %}
+{% endblock %}
+
 {% block javascripts %}
 	{{ block.super }}
 	<script src="{% static "zenaida/js/bootstrap/tab.js" %}"></script>
