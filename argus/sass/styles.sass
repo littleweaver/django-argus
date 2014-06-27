@@ -1,8 +1,9 @@
 @import variables
 @import bootstrap
 
-@import compass/css3/box-shadow
-
+@media (max-width: $screen-xs-max)
+	body
+		background: #452A78
 .nav-pills h4:first-child
 	margin-right: 12px
 
@@ -10,9 +11,6 @@
 	.nav-stacked-md > li
 		float: none
 
-.panel-title
-	font-size: ceil($font-size-base * 1.5)
+.navbar-brand
+	font-family: $font-family-serif
 
-.form-control:focus
-	border-color: $brand-primary
-	+box-shadow(inset 0 1px 1px rgba($black, 0.075), 0 0 8px rgba($brand-primary,0.6))
