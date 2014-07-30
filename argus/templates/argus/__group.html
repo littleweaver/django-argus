@@ -1,18 +1,21 @@
 {% extends "argus/layouts/75_25_xs_switch.html" %}
 
+{% load static %}
+
 {% block title %}{{ group.name|default:group.slug }} – {{block.super }}{% endblock %}
 
-{% block navbar-collapse %}
-	<ul class="nav navbar-nav">
-		<li><a href="{{ group.get_absolute_url }}">{{ group.name|default:group.slug }}</a></li>
-	</ul>
-	<ul class="nav navbar-nav navbar-right">
-		<li><a href="{% url 'argus_group_update' slug=group.slug %}">Settings</a></li>
-		{% if group.password %}
-			<li><a href="{% url 'argus_group_logout' %}">Logout</a></li>
-		{% endif %}
-	</ul>
-{% endblock navbar-collapse %}
+{% block navbar-collapse-inner %}
+	<li class="dropdown">
+		<a href="#" class="dropdown-toggle" data-toggle="dropdown">{{ group.name|default:group.slug }} <span class="caret"></a>
+		<ul class="dropdown-menu" role="menu">
+			<li><a href="{{ group.get_absolute_url }}">Log</a></li>
+			<li><a href="{% url 'argus_group_update' slug=group.slug %}">Settings</a></li>
+			{% if group.password %}
+				<li><a href="{% url 'argus_group_logout' %}">Logout</a></li>
+			{% endif %}
+		</ul>
+	</li>
+{% endblock navbar-collapse-inner %}
 
 {% block side_panel %}
 	<div class="panel panel-default">
@@ -46,4 +49,9 @@
 		</div>{# /.panel-body #}
 	</div>{# /.panel #}
 {% endblock side_panel %}
+
+{% block javascripts %}
+	{{ block.super }}
+	<script src="{% static "zenaida/js/bootstrap/dropdown.js" %}"></script>
+{% endblock %}
 

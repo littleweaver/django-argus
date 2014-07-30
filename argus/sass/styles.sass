@@ -1,22 +1,16 @@
 @import variables
 @import bootstrap
 
-@import "compass/css3/box-shadow"
-
-.panel-body:first-child > :first-child
-	margin-top: 0
+@media (max-width: $screen-xs-max)
+	body
+		background: #452A78
+.nav-pills h4:first-child
+	margin-right: 12px
 
 @media (min-width: $screen-md-min)
 	.nav-stacked-md > li
 		float: none
 
-	.nav-stacked-md > li + li
-		margin-top: 2px
-		margin-left: 0
+.navbar-brand
+	font-family: $font-family-serif
 
-.nav-pills h4:first-child
-	margin-right: 12px
-
-.form-control:focus
-	border-color: $brand-primary
-	+box-shadow(inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba($brand-primary,0.6))

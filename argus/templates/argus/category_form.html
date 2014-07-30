@@ -2,7 +2,7 @@
 
 {% load floppyforms %}
 
-{% block content %}
+{% block main %}
 	<h1><a href="{{ group.get_absolute_url }}">{{ group.name|default:group.slug }}</a></h1>
 
 	<h2>{% if category.pk %}Edit category: {{ category.name }}{% else %}Add a category{% endif %}</h2>
@@ -12,4 +12,4 @@
 		{% form form %}
 		<button class='btn' type="submit">{% if category.pk %}Save changes{% else %}Add category{% endif %}</button>
 	</form>
-{% endblock %}
+{% endblock main %}

@@ -7,7 +7,9 @@
 {% block navbar-title %}Argus{% endblock %}
 
 {% block stylesheets %}
-    <link rel="stylesheet" type="text/css" href="{% static "zenaida/lib/chosen/chosen.min.css" %}" />
+	<link rel="stylesheet" type="text/css" href="{% static "zenaida/lib/chosen/chosen.min.css" %}" />
+	<link rel="stylesheet" type="text/css" href="{% static "argus/css/chosen.css" %}" />
+	<link rel="stylesheet" type="text/css" href="{% static "zenaida/css/styles.css" %}" />
 	<link rel="stylesheet" type="text/css" href="{% static "argus/fonts/aleo.css" %}" />
 	<link rel="stylesheet" type="text/css" href="{% static "argus/css/styles.css" %}" />
 {% endblock stylesheets %}
@@ -15,6 +17,19 @@
 {% block body-classes %}argus{% endblock %}
 
 {% block navbar-brand %}Argus{% endblock %}
+
+{% block content %}
+	{% block before %}{% endblock %}
+	{% block main_panel %}
+		<div class="panel panel-default">
+			<div class="panel-body">
+				{% block main %}
+				{% endblock %}
+			</div>
+		</div>
+	{% endblock main_panel %}
+	{% block after %}{% endblock %}
+{% endblock %}
 
 {% block javascripts %}
 	{{ block.super }}
