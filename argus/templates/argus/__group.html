@@ -4,23 +4,17 @@
 
 {% block title %}{{ group.name|default:group.slug }} – {{block.super }}{% endblock %}
 
-{% block navbar-collapse-inner %}
-	<li class="dropdown">
-		<a href="#" class="dropdown-toggle" data-toggle="dropdown">{{ group.name|default:group.slug }} <span class="caret"></a>
-		<ul class="dropdown-menu" role="menu">
-			<li><a href="{{ group.get_absolute_url }}">Log</a></li>
-			<li><a href="{% url 'argus_group_update' slug=group.slug %}">Settings</a></li>
-			{% if group.password %}
-				<li><a href="{% url 'argus_group_logout' %}">Logout</a></li>
-			{% endif %}
-		</ul>
-	</li>
-{% endblock navbar-collapse-inner %}
-
 {% block side_panel %}
 	<div class="panel panel-default">
 		<div class="panel-heading">
-			<h3 class="panel-title">{{ group.name|default:group.slug }}</h3>
+			<h3 class="panel-title">
+				{{ group.name|default:group.slug }}
+				{% if group.password %}
+					<a href="{% url 'argus_group_logout' %}" class='pull-right'><i class='fa fa-fw fa-power-off'></i></a>
+				{% endif %}
+				<a href="{% url 'argus_group_update' slug=group.slug %}" class='pull-right'><i class='fa fa-gears fa-fw'></i></a>
+				<a href="{{ group.get_absolute_url }}" class='pull-right'><i class='fa fa-th-list fa-fw'></i></a>
+			</h3>
 		</div>
 		<div class="panel-body">
 			{% if not group.password %}
