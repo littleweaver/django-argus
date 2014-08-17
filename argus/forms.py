@@ -57,6 +57,13 @@ GroupCreateFormSet = modelformset_factory(
     fields=('name',))
 
 
+class GroupSlugInput(forms.SlugInput):
+    def get_context(self, name, value, attrs):
+        context = super(GroupSlugInput, self).get_context(name, value, attrs)
+        context['attrs']['pattern'] = Group.SLUG_REGEX
+        return context
+
+
 class GroupForm(forms.ModelForm):
     subject_template_name = "argus/mail/group_email_confirm_subject.txt"
     body_template_name = "argus/mail/group_email_confirm_body.txt"
@@ -67,7 +74,7 @@ class GroupForm(forms.ModelForm):
         model = Group
         exclude = ('password', 'confirmed_email', 'created',)
         widgets = {
-            'slug': forms.SlugInput,
+            'slug': GroupSlugInput,
             'name': forms.TextInput,
             'email': forms.EmailInput,
             'currency': forms.TextInput,

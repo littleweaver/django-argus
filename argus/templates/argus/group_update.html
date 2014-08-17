@@ -7,7 +7,6 @@
 
 	<form action="{{ request.path }}" method="post">
 		{% csrf_token %}
-		<small>Note: changing the slug changes your group URL, so you will not be able to hit "back."</small>
 		{% form form %}
 		<button class='btn' type="submit">Save changes</button>
 	</form>

@@ -22,7 +22,11 @@ class Group(models.Model):
     SLUG_REGEX = "[\w_~\.-]+"
 
     slug = models.CharField(max_length=50, unique=True,
-                            validators=[RegexValidator(SLUG_REGEX)])
+                            validators=[RegexValidator(SLUG_REGEX)],
+                            help_text="Allowed characters: a-z, A-Z, 0-9, and "
+                                      "-.~_. Note: changing the slug changes "
+                                      "your group URL, so you will not be "
+                                      "able to hit \"back.\"")
     name = models.CharField(max_length=64, blank=True)
     email = models.EmailField(blank=True)
     confirmed_email = models.EmailField(blank=True)
