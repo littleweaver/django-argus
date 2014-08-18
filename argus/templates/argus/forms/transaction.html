@@ -1,0 +1,39 @@
+{% extends "floppyforms/layouts/bootstrap.html" %}
+
+{% load floppyforms %}
+
+{% block rows %}
+	{% for field in form.hidden_fields %}
+		{% formfield field %}
+	{% endfor %}
+	<div class='row'>
+		<div class='col-md-6'>
+			{% formrow form.paid_by %}
+		</div>
+		<div class='col-md-6'>
+			{% formrow form.paid_to %}
+		</div>
+	</div>
+	<div class='row'>
+		<div class='col-md-3'>
+			{% formrow form.memo %}
+		</div>
+		<div class='col-md-3'>
+			{% formrow form.amount %}
+		</div>
+		<div class='col-md-3'>
+			{% formrow form.paid_at %}
+		</div>
+		<div class='col-md-3'>
+			{% formrow form.category %}
+		</div>
+	</div>
+
+	{% formrow form.notes %}
+	{% formrow form.split %}
+	{% formrow form.sharers %}
+
+	{% for field in form.member_fields %}
+		{% formrow field %}
+	{% endfor %}
+{% endblock %}
