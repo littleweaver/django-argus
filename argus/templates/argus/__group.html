@@ -1,6 +1,6 @@
 {% extends "argus/layouts/75_25_xs_switch.html" %}
 
-{% load static %}
+{% load static zenaida %}
 
 {% block title %}{{ group.name|default:group.slug }} – {{block.super }}{% endblock %}
 
@@ -16,31 +16,32 @@
 				<a href="{{ group.get_absolute_url }}" class='pull-right'><i class='fa fa-th-list fa-fw'></i></a>
 			</h3>
 		</div>
-		<div class="panel-body">
-			{% if not group.password %}
+		{% if not group.password %}
+			<div class="panel-body">
 				<div class="alert alert-warning">
 					This group doesn’t have a password yet! Maybe you just created it. To keep your group’s information safe from snoopers and saboteurs, <a href="{% url 'argus_group_change_password' group.slug %}">protect it with a password</a>.
 				</div>
-			{% endif %}
+			</div>
+		{% endif %}
+		<div class='list-group'>
+			<div class='list-group-item'><h4>Members</h4></div>
+			{% for member in members %}
+				<a href="{{ member.get_absolute_url }}" class='list-group-item'>
+					<strong>{{ member.name }}</strong><br />
+					<span class='{% if member.balance < 0 %}text-success{% else %}text-danger{% endif %}'>{% if member.balance < 0 %}Owed{% else %}Owes{% endif %} {{ member.balance|absolute_value|format_money:group.currency }}</span>
+				</a>
+			{% endfor %}
+			<a href="{% url 'argus_party_create' group_slug=group.slug %}" class='list-group-item'><span class="fa fa-plus"></span> Add Member</a>
 
-			<ul class="nav nav-pills nav-stacked-md">
-				<li><h4>Members</h4></li>
-				{% for member in members %}
-					<li><a href="{{ member.get_absolute_url }}">{{ member.name }}: {{ member.balance }}</a></li>
-				{% endfor %}
-				<li><a href="{% url 'argus_party_create' group_slug=group.slug %}"><span class="fa fa-plus"></span> Add Member</a></li>
-			</ul>
 
 			{% with categories=group.categories.all %}
-				<ul class="nav nav-pills nav-stacked-md">
-					<li><h4>Categories</h4></li>
-					{% for category in categories %}
-						<li><a href="{{ category.get_absolute_url }}">{{ category.name }}</a></li>
-					{% endfor %}
-					<li><a href="{% url 'argus_category_create' group_slug=group.slug %}"><span class="fa fa-plus"></span> New Category</a></li>
-				</ul>
+				<div class='list-group-item'><h4>Categories</h4></div>
+				{% for category in categories %}
+					<a href="{{ category.get_absolute_url }}" class='list-group-item'>{{ category.name }}</a>
+				{% endfor %}
+				<a href="{% url 'argus_category_create' group_slug=group.slug %}" class='list-group-item'><span class="fa fa-plus"></span> New Category</a>
 			{% endwith %}
-		</div>{# /.panel-body #}
+		</div>
 	</div>{# /.panel #}
 {% endblock side_panel %}
 
