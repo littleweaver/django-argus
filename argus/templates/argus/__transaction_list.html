@@ -1,6 +1,6 @@
 {% extends "argus/__group.html" %}
 
-{% load floppyforms %}
+{% load floppyforms zenaida %}
 
 {% block main_panel %}
 	<div class="panel panel-default">
@@ -19,43 +19,41 @@
 		<div class="panel-heading">
 			<h2 class="panel-title">Expense Log</h2>
 		</div>
-		<div class="panel-body">
-			<table class="table">
-				<thead>
+		<table class="table">
+			<thead>
+				<tr>
+					<th>Paid at</th>
+					<th>Paid by</th>
+					<th>Paid to</th>
+					<th>Memo</th>
+					<th>Amount ({{ group.currency }})</th>
+					{% if not category %}<th>Category</th>{% endif %}
+					<th>Sharers</th>
+					<th></th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for transaction in recent_transactions|slice:":10" %}
 					<tr>
-						<th>Paid at</th>
-						<th>Paid by</th>
-						<th>Paid to</th>
-						<th>Memo</th>
-						<th>Amount ({{ group.currency }})</th>
-						{% if not category %}<th>Category</th>{% endif %}
-						<th>Sharers</th>
-						<th></th>
-					</tr>
-				</thead>
-				<tbody>
-					{% for transaction in recent_transactions|slice:":10" %}
-						<tr>
-							<td>{{ transaction.paid_at|date:"Y-m-d H:i:s" }}</td>
-							<td><a href="{{ transaction.paid_by.get_absolute_url }}">{{ transaction.paid_by.name }}</a></td>
-							<td><a href="{{ transaction.paid_to.get_absolute_url }}">{{ transaction.paid_to.name }}</a></td>
-							<td>{{ transaction.memo }}</td>
-							<td>{{ transaction.amount }}</td>
-							{% if not category %}<td><a href="{{ transaction.category.get_absolute_url }}">{{ transaction.category.name }}</a></td>{% endif %}
-							<td>
-								{% for party in group.parties.all %}
-									{% for share in transaction.shares.all %}
-										{% if share.party_id == party.pk %}
-											<a href="{{ party.get_absolute_url }}" title="{{ share.amount }} ({{ share.percentage }}%)">{{ party.name }}</a>
-										{% endif %}
-									{% endfor %}
+						<td>{{ transaction.paid_at|date:"Y-m-d H:i:s" }}</td>
+						<td><a href="{{ transaction.paid_by.get_absolute_url }}">{{ transaction.paid_by.name }}</a></td>
+						<td><a href="{{ transaction.paid_to.get_absolute_url }}">{{ transaction.paid_to.name }}</a></td>
+						<td>{{ transaction.memo }}</td>
+						<td>{{ transaction.amount|format_money:group.currency }}</td>
+						{% if not category %}<td><a href="{{ transaction.category.get_absolute_url }}">{{ transaction.category.name }}</a></td>{% endif %}
+						<td>
+							{% for party in group.parties.all %}
+								{% for share in transaction.shares.all %}
+									{% if share.party_id == party.pk %}
+										<a href="{{ party.get_absolute_url }}" title="{{ share.amount }} ({{ share.percentage }}%)">{{ party.name }}</a>
+									{% endif %}
 								{% endfor %}
-							</td>
-							<td><a href="{% url 'argus_transaction_update' group_slug=group.slug pk=transaction.pk %}"><i class='glyphicon glyphicon-pencil'></i></a></td>
-						</tr>
-					{% endfor %}
-				</tbody>
-			</table>
-		</div>
+							{% endfor %}
+						</td>
+						<td><a href="{% url 'argus_transaction_update' group_slug=group.slug pk=transaction.pk %}"><i class='fa fa-fw fa-pencil'></i></a></td>
+					</tr>
+				{% endfor %}
+			</tbody>
+		</table>
 	</div>
 {% endblock main_panel %}
